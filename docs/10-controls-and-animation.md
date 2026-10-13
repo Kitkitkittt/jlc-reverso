@@ -58,11 +58,13 @@ Crown and pusher have separate objects and functions. The pusher should animate 
 
 ## Viewer controls
 
-The app in `model/` provides recto/reverse/oblique selection, normal case reversal, explosion amount, calibre-module visibility, labels and an evidence legend. Unknown technical values are not exposed as measured specifications. Clock speed is a display-simulation control, not a mechanical rate adjustment.
+The app separates **Watch**, **Mechanism** and **Sources**. Watch presents the case close-up, both upright faces, the whole bracelet and normal reversal; time-setting and GMT correction live in the inspector. Mechanism exposes whole-watch explosion or the educational calibre with separation, assembly playback and stages. Sources retains provenance and uncertainty. Export, visibility and technical details remain in the inspector rather than the default view. Clock speed is a display-simulation control, not a mechanical rate adjustment.
 
 Keep explosion disabled during a normal case-reversal demo. An exploded display stack can be shown in a separate presentation mode.
 
 Reversal releases the whole moving case, demonstrates a Y-parallel half-turn with illustrative clearance, then reseats it. Cradle and bracelet remain stationary. The actual slide stroke, clearance path and pivot placement are unresolved. GLB includes separate reversal and explosion clips; do not play them simultaneously.
+
+Tap or click a visible part to inspect its human-readable name, role and evidence. Project IDs remain technical identifiers, not OEM numbers. On small screens, the inspector is a collapsed bottom sheet; closing it restores the unobstructed model. The concise educational notice remains visible while full qualifications stay available in Sources.
 
 ## Running educational calibre
 

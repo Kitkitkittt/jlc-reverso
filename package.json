@@ -5,7 +5,7 @@
   "scripts": {
     "serve": "python3 -m http.server 8000 --bind 127.0.0.1",
     "build": "node tools/build_site.mjs",
-    "check": "node model/check-behavior.mjs && node model/check-assembly.mjs && node model/check-motion.mjs && node model/check-native-geometry.mjs"
+    "check": "node model/check-behavior.mjs && node model/check-assembly.mjs && node model/check-motion.mjs && node model/check-movement-surface.mjs && node model/check-native-geometry.mjs"
   },
   "dependencies": {
     "three": "0.180.0"

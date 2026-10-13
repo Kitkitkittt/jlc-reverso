@@ -4,182 +4,358 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Q2718110 Reverso Duo · Calibre 854/1 reference viewer</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2314161a'/><rect x='9' y='6' width='14' height='20' rx='3' fill='none' stroke='%237aa2ff' stroke-width='2'/><circle cx='16' cy='12' r='1.6' fill='%23e0a94f'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23ece7df'/><rect x='9' y='6' width='14' height='20' rx='3' fill='none' stroke='%238a6a3b' stroke-width='2'/><circle cx='16' cy='12' r='1.6' fill='%235d6f8c'/></svg>">
 <meta name="description" content="Interactive reference viewer for the Jaeger-LeCoultre Reverso Duo Q2718110 with Calibre 854/1. Photograph-informed exterior; educational assembly view.">
 <style>
   :root {
-    --bg: #14161a;
-    --panel: #1b1e24;
-    --panel-2: #22262e;
-    --line: #2b313c;
-    --text: #e7e9ee;
-    --muted: #9aa3b2;
-    --accent: #7aa2ff;
-    --accent-2: #4f7ae0;
-    --warn: #e0a94f;
-    --ok: #6fce9a;
+    /* Quiet watch gallery: warm neutrals, restrained contrast, no chrome tiles. */
+    --paper: #ece7df;
+    --paper-2: #f7f4ef;
+    --paper-3: #e2dbd1;
+    --ink: #232019;
+    --ink-2: #6d675c;
+    --line: #d3cabd;
+    --line-2: #c2b7a7;
+    --accent: #7c5f33;
+    --accent-2: #9a7a45;
+    --select: #b8862f;
+    --warn: #8a5a22;
+    --ok: #4f7259;
     --radius: 10px;
-    --shadow: 0 10px 30px rgba(0, 0, 0, .45);
+    --shadow: 0 1px 2px rgba(60, 50, 35, .06), 0 12px 32px rgba(60, 50, 35, .12);
     --font: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    --gap: 10px;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body {
-    background: var(--bg);
-    color: var(--text);
-    font: 14px/1.45 var(--font);
+    background: var(--paper);
+    color: var(--ink);
+    font: 13px/1.5 var(--font);
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
   }
   #stage { position: fixed; inset: 0; }
-  #stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  #stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+  #stage canvas:active { cursor: grabbing; }
 
   /* ---- header ---- */
+  /* Grid, not flex-wrap: the brand and mode bar share row 1 and the notice is
+     pinned to row 2 spanning both columns, so it can never land under the mode
+     bar no matter how the two upper items measure. */
   header {
     position: fixed; top: 0; left: 0; right: 0; z-index: 5;
-    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
-    padding: 12px 16px; pointer-events: none;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start; gap: 6px 14px;
+    padding: 14px 18px 0; pointer-events: none;
   }
-  header h1 { font-size: 15px; margin: 0; font-weight: 600; letter-spacing: .01em; }
-  header .ref {
-    font: 11px/1 var(--mono); color: var(--muted);
+  /* A soft scrim under the header text: the bracelet run crops into the top band,
+     so the title needs its own ground. Translucent, so the bracelet still reads
+     through it. A page gradient, not a photographic asset. */
+  header::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 150%;
+    background: linear-gradient(to bottom,
+      color-mix(in srgb, var(--paper) 86%, transparent) 0%,
+      color-mix(in srgb, var(--paper) 48%, transparent) 58%,
+      transparent 100%);
+    pointer-events: none; z-index: -1;
+  }
+  header .brand { min-width: 0; }
+  header h1 {
+    font-size: 14px; margin: 0; font-weight: 600; letter-spacing: .01em;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  header h1 .ref {
+    font: 10.5px/1 var(--mono); letter-spacing: .04em; color: var(--ink-2);
     border: 1px solid var(--line); border-radius: 999px; padding: 4px 8px;
-    background: rgba(27, 30, 36, .7);
+    background: var(--paper-2);
   }
-  header .hint { font-size: 11px; color: var(--muted); margin-left: auto; }
-  header .precision { flex-basis: 100%; margin: 0; max-width: calc(100% - 350px); font-size: 10px; color: var(--warn); }
-  @media (max-width: 720px) { header .precision { max-width: 100%; font-size: 9px; } }
+  header .sub { margin: 3px 0 0; font-size: 11px; color: var(--ink-2); letter-spacing: .02em; }
+  /* The notice always spans row 2 of the header grid, under both the brand and
+     the mode bar. */
+  header .notice {
+    grid-column: 1 / -1; margin: 2px 0 0; max-width: min(660px, 74vw);
+    font-size: 10.5px; line-height: 1.45; color: var(--ink-2);
+  }
+  header .notice b { color: var(--warn); font-weight: 600; }
+
+  /* ---- modes ---- */
+  #modeBar {
+    margin-left: auto; pointer-events: auto;
+    display: flex; gap: 2px; padding: 3px;
+    background: var(--paper-2); border: 1px solid var(--line); border-radius: 999px;
+    box-shadow: var(--shadow);
+  }
+  #modeBar button {
+    border: 0; background: transparent; border-radius: 999px;
+    padding: 7px 14px; font-size: 12px; letter-spacing: .04em; color: var(--ink-2);
+  }
+  #modeBar button[aria-pressed="true"] { background: var(--ink); color: var(--paper-2); }
+  #modeBar button:hover:not([aria-pressed="true"]) { color: var(--ink); background: var(--paper-3); }
 
   /* ---- labels overlay ---- */
   #labels { position: fixed; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
   #labels { transition: left .18s ease, top .18s ease, width .18s ease, height .18s ease; }
-  .leader { position: absolute; height: 1px; background: rgba(190,198,210,.5); transform-origin: 0 50%; }
+  .leader { position: absolute; height: 1px; background: rgba(90, 78, 60, .45); transform-origin: 0 50%; }
   .label {
     position: absolute; transform: translate(-50%, -50%);
-    white-space: normal; max-width: 190px; font-size: 11px; line-height: 1.2;
-    color: var(--text); background: rgba(20, 22, 26, .78);
-    border: 1px solid var(--line); border-radius: 6px;
-    padding: 3px 7px; backdrop-filter: blur(4px);
+    white-space: normal; max-width: 190px; font-size: 10.5px; line-height: 1.25;
+    color: var(--ink); background: rgba(247, 244, 239, .92);
+    border: 1px solid var(--line-2); border-radius: 6px;
+    padding: 3px 7px; box-shadow: 0 1px 6px rgba(60, 50, 35, .1);
     display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   }
   .label::before {
-    content: ""; width: 7px; height: 7px; border-radius: 50%;
-    background: var(--dot, var(--muted)); flex: none;
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--dot, var(--ink-2)); flex: none;
   }
-  .label .ev { color: var(--muted); font-size: 10px; }
-  .label.calibre-label { width: 116px; max-width: 116px; gap: 4px; font-size: 10px; padding: 4px 6px; }
+  .label .ev { color: var(--ink-2); font-size: 9.5px; }
+  .label.calibre-label { width: 116px; max-width: 116px; gap: 4px; font-size: 9.5px; padding: 4px 6px; }
   .calibre-label > span:first-of-type { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-  .calibre-label .ev { flex-basis: 100%; margin-left: 11px; font-size: 9px; }
+  .calibre-label .ev { flex-basis: 100%; margin-left: 10px; font-size: 9px; }
 
-  /* ---- panel ---- */
-  #panel {
-    position: fixed; top: 0; right: 0; bottom: 0; z-index: 6;
-    width: 324px; max-width: 92vw; overflow-y: auto;
-    background: linear-gradient(180deg, var(--panel), #171a20);
-    border-left: 1px solid var(--line);
-    box-shadow: var(--shadow);
-    padding: 14px 14px 40px;
+  /* ---- selection card ---- */
+  #selectionCard {
+    position: fixed; left: 18px; bottom: 132px; z-index: 7;
+    width: min(330px, calc(100vw - 36px));
+    max-height: min(46vh, 320px);
+    display: flex; flex-direction: column;
+    background: var(--paper-2); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 11px 12px 12px;
   }
-  #panel section { border-top: 1px solid var(--line); padding: 12px 2px; }
-  #panel section[hidden] { display: none; }
-  #panel section:first-of-type { border-top: 0; padding-top: 4px; }
-  #panel h2 {
-    font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
-    color: var(--muted); margin: 0 0 10px; font-weight: 600;
+  #selectionCard[hidden] { display: none; }
+  #selectionCard .card-head { display: flex; align-items: baseline; gap: 8px; }
+  #selectionName { font-size: 13px; font-weight: 600; margin: 0; flex: 1; }
+  #selectionCard .tech {
+    font: 10px/1 var(--mono); letter-spacing: .04em; color: var(--ink-2);
+    border: 1px solid var(--line); border-radius: 999px; padding: 3px 6px; background: var(--paper);
   }
-  fieldset { border: 0; margin: 0; padding: 0; }
-  legend { padding: 0; }
+  /* Description and details scroll inside the card, so the card stays
+     content-sized for short parts and bounded for long ones. */
+  #selectionBody { overflow-y: auto; min-height: 0; }
+  #selectionDesc { margin: 6px 0 0; font-size: 11.5px; color: var(--ink); }
+  #selectionEvidence { margin: 6px 0 0; font-size: 10.5px; color: var(--ink-2); }
+  #selectionCard details { margin-top: 7px; }
+  #selectionCard summary { font-size: 10.5px; color: var(--ink-2); cursor: pointer; }
+  #selectionTechnical { margin-top: 6px; font: 10.5px/1.55 var(--mono); color: var(--ink-2); }
+  #selectionTechnical .row { display: flex; gap: 8px; }
+  #selectionTechnical .k { color: var(--ink); min-width: 92px; }
+  #selectionCard .card-actions { display: flex; gap: 6px; margin-top: 9px; flex: none; }
 
-  .seg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  /* ---- controls bar / bottom sheet ---- */
+  #controls {
+    position: fixed; z-index: 7;
+    left: 50%; transform: translateX(-50%); bottom: 16px;
+    width: max-content; max-width: min(880px, calc(100vw - 36px));
+    background: var(--paper-2); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow); padding: 9px 10px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  #controls .bar-head { display: flex; align-items: center; gap: 8px; }
+  #controls .bar-head .spacer { flex: 1; }
+  #sheetToggle { display: none; }
+  /* Desktop: one compact centred dock. Rows and the two disclosure chips sit
+     side by side instead of stacking into a tall left-hand column. */
+  #controlRows { display: flex; flex-direction: row; align-items: center; gap: 10px; flex-wrap: wrap; }
+  #controlRows[hidden] { display: none; }
+  #controlRows > .row { flex: 0 1 auto; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .row[hidden] { display: none; }
+  .row > * { min-width: 0; }
+  .grow { flex: 1; }
+
+  button, .btn, select, input[type="time"], input[type="text"] {
+    font: inherit; color: var(--ink); background: var(--paper-2);
+    border: 1px solid var(--line-2); border-radius: 8px;
+  }
   button, .btn {
-    font: inherit; color: var(--text); background: var(--panel-2);
-    border: 1px solid var(--line); border-radius: 8px;
-    padding: 8px 10px; cursor: pointer; text-align: center;
+    padding: 7px 11px; cursor: pointer; text-align: center;
     transition: background .12s, border-color .12s, color .12s;
   }
-  button:hover:not(:disabled) { background: #2a2f39; }
-  button:focus-visible, input:focus-visible, select:focus-visible {
+  button:hover:not(:disabled) { background: var(--paper-3); border-color: var(--line-2); }
+  button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
     outline: 2px solid var(--accent); outline-offset: 2px;
   }
-  button[aria-pressed="true"], button.primary {
-    background: var(--accent-2); border-color: var(--accent); color: #fff;
-  }
-  button:disabled { opacity: .42; cursor: not-allowed; }
-  .row { display: flex; gap: 8px; }
-  .row > * { flex: 1; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fdfbf7; }
+  button.primary:hover:not(:disabled) { background: var(--accent-2); border-color: var(--accent-2); }
+  button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper-2); }
+  button.primary[aria-pressed="true"] { background: var(--accent-2); border-color: var(--accent-2); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .seg { display: flex; gap: 2px; padding: 3px; background: var(--paper); border: 1px solid var(--line); border-radius: 999px; }
+  .seg button { border: 0; background: transparent; border-radius: 999px; padding: 6px 12px; font-size: 12px; color: var(--ink-2); }
+  .seg button:hover:not(:disabled) { background: var(--paper-3); color: var(--ink); }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper-2); }
 
-  label.field { display: block; margin-bottom: 8px; }
-  label.field span { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-  input[type="time"], input[type="text"] {
-    width: 100%; font: 13px/1 var(--mono); color: var(--text);
-    background: var(--panel-2); border: 1px solid var(--line);
-    border-radius: 8px; padding: 9px 10px;
-  }
+  select, input[type="time"], input[type="text"] { padding: 6px 8px; font-size: 12.5px; }
   input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .field { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 150px; }
+  .field > span { font-size: 11px; color: var(--ink-2); white-space: nowrap; }
+  .field input[type="range"] { flex: 1; }
+  /* Disclosure blocks are chips in the dock: opening one shows its panel above
+     the dock instead of the chip permanently occupying control width. */
+  details.block { position: relative; border: 1px solid var(--line); border-radius: 999px; padding: 0 10px; }
+  details.block > summary {
+    font-size: 10.5px; letter-spacing: .06em;
+    color: var(--ink-2); cursor: pointer; list-style: none; padding: 7px 0;
+  }
+  details.block > summary::-webkit-details-marker { display: none; }
+  details.block > summary::before { content: "＋ "; font-size: 10px; }
+  details.block[open] > summary::before { content: "－ "; }
+  details.block > div {
+    position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 9;
+    min-width: 300px; max-width: min(420px, calc(100vw - 40px));
+    background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: var(--shadow); padding: 10px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
 
   .readout {
-    font: 12px/1.5 var(--mono); color: var(--muted);
-    background: var(--panel-2); border: 1px solid var(--line);
-    border-radius: 8px; padding: 8px 10px; margin-top: 8px;
+    font: 11.5px/1.55 var(--mono); color: var(--ink-2);
+    background: var(--paper); border: 1px solid var(--line);
+    border-radius: 8px; padding: 7px 9px;
   }
-  .readout b { color: var(--text); font-weight: 600; }
+  .readout b { color: var(--ink); font-weight: 600; }
   .readout .day { color: var(--accent); }
-
-  .checks { display: grid; gap: 7px; }
-  .check { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-  .check input { width: 16px; height: 16px; accent-color: var(--accent); }
-  .check small { color: var(--muted); margin-left: auto; font-size: 10px; }
-
-  .note { font-size: 11px; color: var(--muted); margin-top: 8px; }
+  .note { font-size: 10.5px; color: var(--ink-2); margin: 0; line-height: 1.5; }
   .note a { color: var(--accent); }
-  @media (prefers-reduced-motion: reduce) { #labels, button, .btn { transition: none; } }
   .note.warn { color: var(--warn); }
 
+  /* ---- inspector ---- */
+  #panel {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 8;
+    width: 324px; max-width: 92vw; overflow-y: auto;
+    background: var(--paper-2); border-left: 1px solid var(--line);
+    box-shadow: var(--shadow); padding: 14px 14px 40px;
+  }
+  #panel[data-collapsed="true"] { display: none; }
+  /* Small screens: the inspector presents as a sheet over the viewer and needs
+     its own way out, because the mode bar it would otherwise return to is
+     underneath it. */
+  #panelClose { display: none; }
+  #panel .panel-head { display: flex; align-items: center; gap: 8px; }
+  #panel .panel-head h2 { margin: 0; }
+  #panel section { border-top: 1px solid var(--line); padding: 12px 2px; }
+  #panel section:first-of-type { border-top: 0; padding-top: 2px; }
+  #panel h2 {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em;
+    color: var(--ink-2); margin: 0 0 10px; font-weight: 600;
+  }
+  #panel h2 + .note { margin-top: -4px; }
+  fieldset { border: 0; margin: 0; padding: 0; }
+  legend { padding: 0; }
+  label.field { display: block; margin-bottom: 8px; }
+  label.field span { display: block; font-size: 11px; color: var(--ink-2); margin-bottom: 4px; }
+  .checks { display: grid; gap: 7px; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+  .check input { width: 15px; height: 15px; accent-color: var(--accent); }
+  .check small { color: var(--ink-2); margin-left: auto; font-size: 10px; font-family: var(--mono); }
   .legend { display: grid; gap: 6px; margin: 0; }
-  .legend div { display: flex; gap: 8px; align-items: flex-start; font-size: 11px; }
+  .legend div { display: flex; gap: 8px; align-items: flex-start; font-size: 10.5px; }
   .legend .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex: none; }
-  .legend .k { color: var(--text); font-family: var(--mono); font-size: 10px; }
-  .legend .v { color: var(--muted); }
-  .legend-caution { font-size: 10.5px; color: var(--warn); margin: 0 0 2px; line-height: 1.35; }
+  .legend .k { color: var(--ink); font-family: var(--mono); font-size: 10px; }
+  .legend .v { color: var(--ink-2); }
+  .legend-caution { font-size: 10.5px; color: var(--warn); margin: 0 0 4px; line-height: 1.45; }
 
+  /* ---- sources ---- */
+  #sourceRow { flex-direction: column; align-items: stretch; }
+  .sources { display: grid; gap: 8px; max-height: min(46vh, 420px); overflow-y: auto; padding-right: 2px; }
+  .sources li { list-style: none; }
+  .sources ol { margin: 0; padding: 0; display: grid; gap: 9px; }
+  .source {
+    background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+    font-size: 11px; color: var(--ink-2); line-height: 1.5;
+  }
+  .source .id { font: 10px/1 var(--mono); color: var(--ink); letter-spacing: .04em; }
+  .source .title { color: var(--ink); font-weight: 600; }
+  .source .meta { display: block; margin-top: 3px; font-size: 10px; }
+  .source a { color: var(--accent); overflow-wrap: anywhere; }
 
+  /* Transient export/build feedback lives in the sheet header, so it can never
+     collide with the title or the mobile sheet. */
   #status {
-    position: fixed; left: 16px; bottom: 16px; z-index: 6;
-    font: 11px/1 var(--mono); color: var(--muted);
-    background: rgba(20, 22, 26, .8); border: 1px solid var(--line);
-    border-radius: 999px; padding: 6px 10px; pointer-events: none;
+    font: 10.5px/1 var(--mono); color: var(--ink-2); pointer-events: none;
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   #status:empty { display: none; }
 
   #error {
     position: fixed; inset: 0; z-index: 20; display: none;
-    background: rgba(12, 13, 16, .94); padding: 6vh 6vw; overflow: auto;
+    background: rgba(28, 24, 18, .92); padding: 6vh 6vw; overflow: auto;
   }
   #error[data-open="true"] { display: block; }
-  #error h2 { color: #ff8f8f; margin: 0 0 10px; font-size: 16px; }
+  #error h2 { color: #ffb4a2; margin: 0 0 10px; font-size: 16px; }
   #error pre {
-    font: 12px/1.5 var(--mono); color: #ffd9d9; white-space: pre-wrap;
-    background: #1a1416; border: 1px solid #3a2226; border-radius: 8px; padding: 14px;
+    font: 12px/1.5 var(--mono); color: #f4e7e2; white-space: pre-wrap;
+    background: #241d18; border: 1px solid #46342b; border-radius: 8px; padding: 14px;
   }
-  #error button { margin-top: 14px; }
+  #error button { margin-top: 14px; background: #2e2620; color: #f4e7e2; border-color: #46342b; }
 
-  .panel-toggle {
-    position: fixed; top: 10px; right: 12px; z-index: 8; display: none;
+  @media (prefers-reduced-motion: reduce) {
+    #labels, button, .btn, .label, .leader { transition: none !important; }
   }
 
-  @media (max-width: 720px) {
-    #panel {
-      top: auto; left: 0; right: 0; bottom: 0; width: auto;
-      height: 46vh; max-height: 46vh;
-      border-left: 0; border-top: 1px solid var(--line); border-radius: 14px 14px 0 0;
-      padding-bottom: 24px;
-    }
-    #panel[data-collapsed="true"] { display: none; }
-    .panel-toggle { display: inline-block; }
-    header .hint { display: none; }
-    #status { bottom: auto; top: 54px; left: 12px; }
+  @media (max-width: 900px) {
+    /* Narrow header: brand on the first line, the mode bar on its own second
+       line and the notice third, so the mode bar never squeezes the title into
+       a column and the notice never sits behind the mode bar. */
+    header { padding: 10px 12px 0; grid-template-columns: minmax(0, 1fr); gap: 5px; }
     header h1 { font-size: 13px; }
-    header .ref { font-size: 10px; }
+    header .sub { font-size: 10px; }
+    #modeBar { margin-left: 0; justify-self: start; }
+    header .notice { max-width: 100%; font-size: 10px; }
+    #modeBar button { padding: 6px 10px; }
+
+    #controls {
+      left: 0; right: 0; bottom: 0; width: auto; max-width: none; transform: none;
+      border-radius: 16px 16px 0 0; border-left: 0; border-right: 0; border-bottom: 0;
+      padding: 8px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+    }
+    /* Stacked rows again on narrow screens: chips cannot float a panel, so the
+       disclosures become ordinary in-flow blocks. */
+    #controlRows { flex-direction: column; align-items: stretch; gap: 9px; }
+    details.block { border: 0; border-radius: 0; padding: 0; }
+    details.block > summary { padding: 4px 0; }
+    details.block > div { position: static; min-width: 0; max-width: none; border: 0; box-shadow: none; padding: 0; }
+    #sheetToggle { display: inline-block; }
+    /* Collapsed by default: the rule keys off the *absence* of an explicit
+       expanded state, so the sheet starts compact even before the script runs.
+       Only the primary row survives; the disclosure chips and the standing notes
+       wait for an explicit expand. The header notice already carries the
+       educational caution, and the secondary separation field lives inside the
+       Mechanism-only rows that are hidden with the mode. */
+    #controls:not([data-collapsed="false"]) #controlRows {
+      max-height: 30vh; overflow-y: auto;
+    }
+    #controls:not([data-collapsed="false"]) #controlRows details.block,
+    #controls:not([data-collapsed="false"]) #controlRows .note { display: none; }
+    #controls:not([data-collapsed="false"]) #previousAssemblyBtn,
+    #controls:not([data-collapsed="false"]) #nextAssemblyBtn,
+    #controls:not([data-collapsed="false"]) #motionRunBtn,
+    #controls:not([data-collapsed="false"]) #mechRow .field:has(#movementExplosionRange) { display: none; }
+    #mechRow .field:has(#assemblyRange) { flex-basis: 100%; min-width: 0; }
+    #assemblyVal { display: block; overflow-wrap: anywhere; }
+    #controls[data-collapsed="false"] #controlRows { max-height: 62vh; overflow-y: auto; }
+
+    /* One compact head row: the Controls toggle, the part picker and Inspector
+       share a line, so the collapsed sheet stays a short primary row instead of
+       wrapping into a three-line block. */
+    #controls .bar-head { flex-wrap: nowrap; gap: 6px; }
+    #controls .bar-head .spacer { flex: 0 1 8px; }
+    #partSelect { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    #controls .bar-head button, #controls .bar-head select { padding: 6px 9px; font-size: 12px; }
+    #status { flex-basis: 100%; }
+    #panelClose { display: inline-block; }
+    #panel { top: 0; left: 0; right: 0; bottom: 0; width: auto; border-left: 0; padding: 16px 14px 60px; }
+    #selectionCard {
+      left: 10px; right: 10px; bottom: auto; top: 84px; width: auto;
+      max-height: min(38vh, 210px);
+    }
+    .sources { max-height: 34vh; }
   }
 </style>
 </head>
@@ -187,125 +363,172 @@
   <div id="stage" aria-label="Interactive 3D view of the Q2718110 reference model"></div>
 
   <header>
-    <h1>Q2718110 Reverso Duo</h1>
-    <span class="ref">Calibre 854/1 · reference model</span>
-    <span class="hint">Drag to orbit · scroll to zoom</span>
-    <p class="precision" id="viewCaption">Photograph-informed exterior; proportions provisional. Source-informed educational calibre geometry, not exact 854/1 parts.</p>
+    <div class="brand">
+      <h1>Reverso Duo <span class="ref">Q2718110</span></h1>
+      <p class="sub">Calibre 854/1 · reference model · drag to orbit, scroll to zoom</p>
+    </div>
+    <nav id="modeBar" aria-label="Presentation mode">
+      <button id="modeWatch" type="button" data-mode="watch" aria-pressed="true">Watch</button>
+      <button id="modeMechanism" type="button" data-mode="mechanism" aria-pressed="false">Mechanism</button>
+      <button id="modeSources" type="button" data-mode="sources" aria-pressed="false">Sources</button>
+    </nav>
+    <p class="notice" id="viewCaption"><b>Educational geometry.</b> Provisional proportions; full qualifications and locators in Sources.</p>
   </header>
 
   <div id="labels" aria-hidden="true"></div>
-  <button class="panel-toggle" id="panelToggle" type="button" aria-expanded="true" aria-controls="panel">Controls</button>
 
-  <aside id="panel" aria-label="Viewer controls">
-    <section>
-      <h2 id="h-view">View</h2>
-      <fieldset aria-labelledby="h-view">
-        <legend class="sr-only" hidden>View direction</legend>
-        <div class="seg" role="group">
-          <button type="button" data-view="recto" aria-pressed="true">Recto</button>
-          <button type="button" data-view="reverse" aria-pressed="false">Reverse</button>
-          <button type="button" data-view="oblique" aria-pressed="false">Oblique</button>
-          <button type="button" data-view="exploded" aria-pressed="false">Exploded</button>
+  <section id="selectionCard" hidden aria-label="Selected part">
+    <div class="card-head">
+      <h2 id="selectionName">Part</h2>
+      <span class="tech" id="selectionId">—</span>
+    </div>
+    <div id="selectionBody">
+      <p id="selectionDesc"></p>
+      <p id="selectionEvidence"></p>
+      <details id="selectionTechnicalWrap">
+        <summary>Technical evidence details</summary>
+        <div id="selectionTechnical"></div>
+      </details>
+    </div>
+    <div class="card-actions">
+      <button id="selectionFocusBtn" type="button">Focus view</button>
+      <button id="selectionClear" type="button">Clear</button>
+    </div>
+  </section>
+
+  <div id="controls" data-collapsed="true" role="group" aria-label="Viewer controls">
+    <div class="bar-head">
+      <button id="sheetToggle" type="button" aria-expanded="false" aria-controls="controlRows">Controls</button>
+      <span id="status" role="status" aria-live="polite"></span>
+      <span class="spacer"></span>
+      <label class="sr-only" for="partSelect">Select a part</label>
+      <select id="partSelect" aria-label="Select a part by name"></select>
+      <button id="panelToggle" type="button" aria-expanded="false" aria-controls="panel">Inspector</button>
+    </div>
+
+    <div id="controlRows">
+      <!-- Watch mode: the watch, one obvious Flip, and very little else. -->
+      <div class="row" id="watchRow">
+        <div class="seg" role="group" aria-label="Watch view">
+          <button type="button" data-view="recto" aria-pressed="false">Front</button>
+          <button type="button" data-view="reverse" aria-pressed="false">Back</button>
+          <button type="button" data-view="oblique" aria-pressed="true">Angle</button>
+          <button type="button" data-view="whole" aria-pressed="false">Whole watch</button>
+        </div>
+        <button id="playReversalBtn" type="button" class="primary" aria-pressed="false">Flip</button>
+        <button id="resetBtn" type="button">Reset</button>
+        <label class="field">
+          <span>Reversal <span id="reversalVal" aria-hidden="true">0%</span></span>
+          <input id="reversalRange" type="range" min="0" max="1" step="0.001" value="0"
+                 aria-label="Case reversal progress" aria-valuetext="0%">
+        </label>
+      </div>
+
+      <!-- Mechanism mode: calibre inspection, explosion and guided assembly. -->
+      <div class="row" id="mechRow" hidden>
+        <div class="seg" role="group" aria-label="Calibre view">
           <button type="button" data-view="calibre" aria-pressed="false">Calibre</button>
           <button type="button" data-view="calibre-exploded" aria-pressed="false">Calibre exploded</button>
         </div>
-      </fieldset>
-    </section>
-
-    <section>
-      <h2 id="h-time">Time</h2>
-      <div class="row" style="margin-bottom:8px">
-        <label class="field" style="margin:0">
-          <span>Set time (24 h)</span>
-          <input id="timeInput" type="time" step="1" value="08:20:35" aria-label="Set the displayed time">
-        </label>
-      </div>
-      <div class="row">
-        <button id="runBtn" type="button" aria-pressed="true">Pause</button>
-        <button id="resetBtn" type="button">Reset</button>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <label class="field" style="margin:0">
-          <span>Run speed (illustrative)</span>
-          <select id="speedSelect" aria-label="Clock run speed">
-            <option value="1" selected>1&times; real time</option>
-            <option value="10">10&times;</option>
-            <option value="60">60&times;</option>
-            <option value="600">600&times;</option>
-          </select>
-        </label>
-      </div>
-      <div class="readout" id="timeReadout" aria-live="polite"></div>
-    </section>
-
-    <section>
-      <h2 id="h-pusher">GMT pusher</h2>
-      <button id="pusherBtn" type="button" class="primary" style="width:100%">Press pusher &nbsp;+1 h</button>
-      <p class="note" id="pusherNote">One press advances the reverse hour offset by one hour; minutes stay linked. The reverse 24-hour indicator follows. Twelve presses change the day/night phase; twenty-four restore it. The DAY/NIGHT split is provisional: the indicator's true zero orientation is unverified (see docs/10).</p>
-      <p class="note">The pusher is above the crown and is a separate object. The stroke shown is illustrative.</p>
-    </section>
-
-    <section>
-      <h2 id="h-reversal">Case reversal</h2>
-      <button id="playReversalBtn" type="button" class="primary" style="width:100%" aria-pressed="false">Play reversal</button>
-      <label class="field" style="margin-top:10px">
-        <span>Reversal progress <span id="reversalVal" aria-hidden="true">0%</span></span>
-        <input id="reversalRange" type="range" min="0" max="1" step="0.001" value="0"
-               aria-label="Case reversal progress" aria-valuetext="0%">
-      </label>
-      <p class="note">Release with illustrative slide and clearance lift, half-turn about the Y-parallel axis, reseat. Pivot and clearance path are unresolved, not measured.</p>
-    </section>
-
-    <section>
-      <h2 id="h-explosion">Explosion</h2>
-      <label class="field">
-        <span>Explosion amount <span id="explosionVal" aria-hidden="true">0%</span></span>
-        <input id="explosionRange" type="range" min="0" max="1" step="0.001" value="0"
-               aria-label="Explosion amount" aria-valuetext="0%">
-      </label>
-      <p class="note" id="explosionNote">Moving module first, then case body, supports and face layers. Calibre groups have an independent separation control. Gaps are enlarged, not measured.</p>
-      <p class="note warn" id="explosionLock" hidden>Whole-watch explosion is disabled during reversal and calibre focus.</p>
-    </section>
-
-    <section>
-      <h2 id="h-calibre">Calibre groups</h2>
-      <label class="field">
-        <span>Subsystem separation <span id="movementExplosionVal" aria-hidden="true">0%</span></span>
-        <input id="movementExplosionRange" type="range" min="0" max="1" step="0.001" value="0" aria-label="Calibre subsystem separation" aria-valuetext="0%">
-      </label>
-      <p class="note warn">Source-informed educational geometry — not exact 854/1 parts. Dimensions, pivots and tooth counts are unverified. No rotor or date mechanism is depicted.</p>
-      <p class="note"><a href="https://www.youtube.com/watch?v=BohN-EtjQuw&amp;t=210s" target="_blank" rel="noopener noreferrer">Inspect the mechanism source · Timekeeper’s Corner (S07)</a>. The title attributes 854/1; the exact calibre engraving was not confirmed. The 210 s locator shows an isolated barrel with open mainspring, not a train-installation step. No third-party footage is bundled.</p>
-      <p class="note">Inspected locators: <a href="https://www.youtube.com/watch?v=BohN-EtjQuw&amp;t=270s" target="_blank" rel="noopener noreferrer">270 s · train in place</a>, <a href="https://www.youtube.com/watch?v=BohN-EtjQuw&amp;t=315s" target="_blank" rel="noopener noreferrer">315 s · inscribed bridge installed</a>, <a href="https://www.youtube.com/watch?v=BohN-EtjQuw&amp;t=450s" target="_blank" rel="noopener noreferrer">450 s · winding / setting close-up</a>, <a href="https://www.youtube.com/watch?v=BohN-EtjQuw&amp;t=480s" target="_blank" rel="noopener noreferrer">480 s · assembled checkpoint</a>. These observations inform groups, not an authenticated parts count or assembly order.</p>
-    </section>
-
-    <section id="motionSection">
-      <h2 id="h-motion">Running calibre · educational</h2>
-      <button id="motionRunBtn" type="button" class="primary" style="width:100%" aria-pressed="true">Pause movement</button>
-      <p class="note" id="motionExplanation">Train wheels turn, the balance oscillates about its own centre and the escapement steps once per beat. Train speeds, amplitudes and the escapement step are illustrative; the balance cadence derives from the catalogue 21,600 vph rate. Winding, setting and display-transfer wheels stay still while running.</p>
-      <p class="note warn">Pause freezes the running calibre; setting the time or correcting GMT never jumps its phase. Pausing the watch stops the movement with it.</p>
-    </section>
-
-    <section>
-      <h2 id="h-assembly">Guided assembly · educational</h2>
-      <button id="playAssemblyBtn" type="button" class="primary" style="width:100%" aria-pressed="false">Play assembly</button>
-      <div class="row" style="margin-top:8px">
+        <button id="playAssemblyBtn" type="button" class="primary" aria-pressed="false">Play assembly</button>
         <button id="previousAssemblyBtn" type="button">Previous stage</button>
         <button id="nextAssemblyBtn" type="button" disabled>Next stage</button>
+        <button id="motionRunBtn" type="button" aria-pressed="true">Pause movement</button>
+        <label class="field">
+          <span>Assembly <span id="assemblyVal" aria-hidden="true">100% · Winding and display works seated</span></span>
+          <input id="assemblyRange" type="range" min="0" max="1" step="0.001" value="1"
+                 aria-label="Educational assembly progress" aria-valuetext="100%">
+        </label>
+        <label class="field">
+          <span>Subsystem separation <span id="movementExplosionVal" aria-hidden="true">0%</span></span>
+          <input id="movementExplosionRange" type="range" min="0" max="1" step="0.001" value="0"
+                 aria-label="Calibre subsystem separation" aria-valuetext="0%">
+        </label>
+        <p class="note" id="assemblyExplanation">Winding, setting and the two display works complete the educational grouping.</p>
+        <p class="note" id="motionExplanation">Train wheels turn, the balance oscillates about its own centre and the escapement steps once per beat. Train speeds, amplitudes and the escapement step are illustrative; the balance cadence derives from the catalogue 21,600 vph rate.</p>
+        <p class="note warn">Source-informed educational geometry, not exact 854/1 parts. Explanatory grouping, not a workshop or lubrication order. <button type="button" class="btn" id="toSourcesBtn" style="padding:4px 8px;font-size:10.5px">Sources</button></p>
       </div>
-      <label class="field" style="margin-top:10px">
-        <span>Assembly <span id="assemblyVal" aria-hidden="true">100% · Winding and display works seated</span></span>
-        <input id="assemblyRange" type="range" min="0" max="1" step="0.001" value="1" aria-label="Educational assembly progress" aria-valuetext="100%">
-      </label>
-      <p class="note" id="assemblyExplanation">Winding, setting and the two display works complete the educational grouping.</p>
-      <p class="note warn">Explanatory sequence only, not an OEM step order, workshop or lubrication procedure. Scrubbing stops and holds the pose. Play resumes it; completed playback stops. No automatic playback.</p>
-      <p class="note"><a href="../renders/calibre-assembly.mp4" target="_blank" rel="noopener noreferrer">Watch the original model assembly video (MP4)</a> · educational browser recording, not third-party footage.</p>
+
+      <!-- Sources mode: the full qualifications and locators, one click away. -->
+      <div class="row" id="sourceRow" hidden>
+        <div class="row">
+          <p class="note" id="sourceCaution"></p>
+        </div>
+        <div class="row">
+          <label class="field">
+            <span>Source index</span>
+            <select id="sourceFilter" aria-label="Filter the source index"></select>
+          </label>
+        </div>
+        <div class="sources" id="sourceList" aria-live="polite"></div>
+        <div class="row">
+          <a class="btn" href="https://github.com/Kitkitkittt/jlc-reverso/blob/main/docs/12-dot-brief.md" target="_blank" rel="noopener noreferrer">Dot brief</a>
+          <a class="btn" href="https://github.com/Kitkitkittt/jlc-reverso/blob/main/docs/11-quality-checks.md" target="_blank" rel="noopener noreferrer">Quality checks</a>
+          <a class="btn" href="https://github.com/Kitkitkittt/jlc-reverso/blob/main/docs/13-open-questions.md" target="_blank" rel="noopener noreferrer">Open questions</a>
+          <button type="button" id="toWatchBtn">Back to watch</button>
+        </div>
+      </div>
+
+      <details class="block" id="setTimeBlock">
+        <summary>Set time and GMT</summary>
+        <div>
+          <div class="row">
+            <label class="field">
+              <span>Time (24 h)</span>
+              <input id="timeInput" type="time" step="1" value="08:20:35" aria-label="Set the displayed time">
+            </label>
+            <button id="runBtn" type="button" aria-pressed="true">Pause</button>
+            <label class="field">
+              <span>Run speed</span>
+              <select id="speedSelect" aria-label="Clock run speed">
+                <option value="1" selected>1&times; real time</option>
+                <option value="10">10&times;</option>
+                <option value="60">60&times;</option>
+                <option value="600">600&times;</option>
+              </select>
+            </label>
+          </div>
+          <div class="readout" id="timeReadout" aria-live="polite"></div>
+          <div class="row">
+            <button id="pusherBtn" type="button">Press GMT pusher &nbsp;+1 h</button>
+          </div>
+          <p class="note" id="pusherNote">One press advances the reverse hour offset by one hour; minutes stay linked and the reverse 24-hour indicator follows. Twelve presses change the day/night phase; twenty-four restore it. The indicator's true zero orientation is unverified, so the day/night split stays provisional.</p>
+        </div>
+      </details>
+
+      <details class="block" id="explodeBlock">
+        <summary>Explode the case</summary>
+        <div>
+          <label class="field">
+            <span>Explosion amount <span id="explosionVal" aria-hidden="true">0%</span></span>
+            <input id="explosionRange" type="range" min="0" max="1" step="0.001" value="0"
+                   aria-label="Explosion amount" aria-valuetext="0%">
+          </label>
+          <p class="note" id="explosionNote">Moving module first, then case body, supports and face layers. Calibre groups have an independent separation control in Mechanism. Gaps are enlarged, not measured.</p>
+          <p class="note warn" id="explosionLock" hidden>Whole-watch explosion is disabled during reversal and calibre focus.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <aside id="panel" data-collapsed="true" aria-label="Inspector">
+    <div class="panel-head">
+      <h2 id="h-parts">Parts</h2>
+      <span class="spacer" style="flex:1"></span>
+      <button id="panelClose" type="button">Close</button>
+    </div>
+    <section>
+      <p class="note" style="margin-top:8px">Click a part in the model to highlight it, or choose one here. Technical IDs stay in the selection card.</p>
+      <div class="row" style="margin-top:8px">
+        <button id="inspectClearBtn" type="button">Clear selection</button>
+      </div>
     </section>
 
     <section>
-      <h2 id="h-display">Display</h2>
+      <h2 id="h-display">Visibility</h2>
       <div class="checks">
-        <label class="check"><input id="labelsToggle" type="checkbox"> Labels <small>part callouts</small></label>
-        <label class="check"><input id="legendToggle" type="checkbox"> Evidence legend <small>badge meanings</small></label>
+        <label class="check"><input id="labelsToggle" type="checkbox"> Labels <small>callouts</small></label>
+        <label class="check"><input id="legendToggle" type="checkbox"> Evidence legend <small>badges</small></label>
         <label class="check"><input id="movementToggle" type="checkbox" checked> Calibre module <small>M000</small></label>
         <label class="check"><input id="crystalToggle" type="checkbox" checked> Crystals <small>C105/C106</small></label>
         <label class="check"><input id="braceletToggle" type="checkbox" checked> Bracelet <small>B000</small></label>
@@ -313,6 +536,14 @@
       <div id="legendBox" hidden style="margin-top:10px">
         <div class="legend" id="legendList"></div>
       </div>
+    </section>
+    <section>
+      <h2 id="h-camera">Camera</h2>
+      <div class="seg" role="group" aria-label="Camera projection">
+        <button type="button" data-projection="perspective" aria-pressed="true">Long lens</button>
+        <button type="button" data-projection="orthographic" aria-pressed="false">Orthographic</button>
+      </div>
+      <p class="note" style="margin-top:8px">Use orthographic for matched upright comparisons; the long lens retains depth in angled views.</p>
     </section>
 
     <section>
@@ -322,16 +553,15 @@
         <button id="jsonBtn" type="button">Three JSON</button>
       </div>
       <button id="pngBtn" type="button" style="width:100%">PNG (with accuracy caption)</button>
-      <p class="note">GLB includes independent case reversal, whole-watch explosion, Calibre exploded groups and Calibre assembly (educational) clips, with explicit 1 mm = 0.001 m conversion. JSON restores the complete assembled geometry regardless of focus or visibility toggles, authored in millimetres.</p>
+      <p class="note">GLB carries independent case reversal, whole-watch explosion, Calibre exploded groups and Calibre assembly clips, with an explicit 1 mm = 0.001 m conversion. JSON restores the complete assembled geometry regardless of focus or visibility toggles, authored in millimetres. Selection highlights are an overlay and are never exported.</p>
     </section>
 
     <section>
       <h2 id="h-about">Precision</h2>
-      <p class="note">Photograph-informed exterior; proportions provisional. Source-informed educational calibre groups, not measured 854/1 geometry or an exact parts list. The public video was reviewed privately; no third-party footage or copied frames are bundled.</p>
+      <p class="note" id="panelCaution"></p>
+      <p class="note">The public video was reviewed privately; no third-party footage or copied frames are bundled. The owner's photograph stays private.</p>
     </section>
   </aside>
-
-  <div id="status" role="status" aria-live="polite"></div>
 
   <div id="error" role="alertdialog" aria-modal="true" aria-labelledby="errorTitle" data-open="false">
     <h2 id="errorTitle">Viewer error</h2>

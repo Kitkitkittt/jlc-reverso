@@ -2,6 +2,10 @@
   command = "npm run build"
   publish = "dist"
 
+# Keep the site's Netlify toolbar and promotional badge disabled in hosting
+# settings: their injected HUD script previously broke viewport resize.
+# Application errors remain visible; no client-side error suppression is used.
+
 [[headers]]
   for = "/model/*"
   [headers.values]

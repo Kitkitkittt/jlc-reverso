@@ -10,7 +10,7 @@ The lower round small-seconds display occupies the 6 region. Preserve the surrou
 
 | Element | Requirement | Implementation note |
 | --- | --- | --- |
-| Arabic numerals | Black; photographed shapes and proportions | Trace from an adequate reference; a generic font is provisional |
+| Arabic numerals | Black; tall photographed shapes and proportions | Original editable path strokes; photo-informed, not a verified factory typeface |
 | Hour/minute hands | Blue-toned, photographed profile | Keep them as separate meshes |
 | Seconds hand | Separate small hand on lower register | Local pivot independent from main hand pivot |
 | Central field | Fine guilloche-like appearance | Texture first; displacement only where visible |
@@ -24,7 +24,7 @@ Do not impose an arbitrary 10:10 sample pose if it hides the pusher or obscures 
 
 The reverse is a dark two-register composition. Its upper time display is a circle within the rectangular dial. Its lower indicator is a 24-hour scale.
 
-Use the inspected U03 observations as a provisional layout. Keep detailed lower track typography editable until a sharper owner photo is available. Use a dark, fine pattern around the registers without making unsupported claims about exact machining depth.
+Use the inspected U03 observations as a provisional layout. The lower register retains a 24-tick scale and DAY/NIGHT context without inventing exact numbered printing or an unsupported wordmark. Its hand's artistic zero orientation is not a verified printed zero. Keep detailed lower track typography editable until a sharper owner photo is available. Use a dark, fine pattern around the registers without making unsupported claims about exact machining depth.
 
 Both sides must show normal, readable text when viewed from their own outside. A geometric case reversal changes which side is visible. It does not require mirrored dial lettering.
 
@@ -44,7 +44,7 @@ The current illustrative control profile raises the crown beside numeral 3 and t
 
 Preserve the rectangular polished exterior and the horizontal decorative grooves at the top and bottom ends. Separate the moving case from the supporting cradle. The photographed surfaces include strong specular highlights. A hard white stripe is often a reflection rather than a distinct material strip.
 
-The current case uses one beveled shell for continuous side reflections instead of separate cylindrical highlight strips. Triple end gadroons are shallower; the crown uses polished steel with geometric grip ridges rather than a dark painted texture. These are appearance corrections, not claims about machining or material grade.
+The current case uses one beveled shell and broad shallow three-band end relief instead of attached cylindrical rods. The crown uses geometric grip ridges. Separate polished and satin surfaces provide reflection cues; these are appearance corrections, not claims about machining or material grade.
 
 Use a transparent crystal object over each dial. The original sapphire-material specification is supported by direct dealer cataloguing of this reference, S08, but the owner's crystal has not been independently tested.
 
@@ -53,6 +53,8 @@ Use a transparent crystal object over each dial. The original sapphire-material 
 The target is the steel-bracelet reference. The wrist photograph shows an articulated repeating link pattern and bright polished surfaces. Reproduce the visible rhythm before inventing a hidden attachment mechanism.
 
 Create a repeatable link unit and two end assemblies. Link count is a sizing choice for a display pose, not an established original part count. End-link shape, fasteners, underside, clasp blades and release mechanism need additional photography.
+
+The gallery retains five staggered columns, rolled link ends, curved surfaces, a quieter end-link transition and arc-length drape. The visible rhythm follows the private photograph; curvature, crown, gaps and sizing remain artistic choices, not an inferred pin or clasp mechanism.
 
 A leather strap variant is useful for calibre comparison. It should not replace the photographed bracelet.
 

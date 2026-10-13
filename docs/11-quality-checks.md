@@ -61,7 +61,21 @@ The initial public file set excludes the owner's wrist photograph and its privat
 Train time now accumulates with the selected speed per running frame, independently of wall-clock balance/escapement phase. Browser checks preserve all motion quaternions when changing speed while paused and then setting time or correcting GMT; resume continues from the same phase. `npm run check`, `python3 tools/validate_pack.py`, the real Chromium playback check and `npm run build` passed for this publication candidate.
 
 
-## Current local running-calibre verification
+## Quiet-gallery redesign verification
+
+The redesigned app was visually exercised at 1440 × 1000 and 390 × 844: angled case, both upright faces, whole bracelet, halfway reversal, whole-watch explosion, assembled calibre and mobile part inspection. Watch/Mechanism/Sources expose contextual controls. Selected-part cards clear the mobile navigation, stay bounded and resolve real source locators; no horizontal overflow or application error was observed.
+
+The Netlify toolbar and promotional badge are disabled at the host. A fresh production page contained no injected HUD script, and a desktop-to-mobile resize produced no error. Application error reporting remains intact.
+
+`npm run check` passed behavior, assembly, motion, outward-wound movement geometry/open bores and native round trips for 284 meshes. The real Chromium playback check also passed contextual mode changes and selection without mutating source materials. Reference validation passed 17 sources, 56 assembly records and 12 frame slots; physical evidence dimensions remain null. The build publishes a field-allowlisted factual source index, never private images or filesystem locators.
+
+All nine gallery PNGs and both geometry exports were regenerated. Real Chromium GLTFLoader and ObjectLoader reopened them with twelve movement groups, four independent GLB clips and matching bounds through exactly one `0.001` root scale. Native JSON is 50,504,527 bytes; GLB is 16,001,140 bytes. Multimaterial primitives, embedded textures and finite vertices were inspected; no selection overlay was exported. The reopened assembly clip converged to assembled group poses at 12 seconds without moving the cradle or displays.
+
+The original-model assembly film was regenerated from the new viewer with a fixed camera and shared stage names: 1280 × 960, H.264/yuv420p, 24 fps, 336 frames, 14 seconds and no audio. Decoded opening, intermediate and assembled-dwell frames were inspected. Assembly lasts 12 seconds with 2 seconds seated; motion continues through the dwell. No owner image, third-party frame or external media asset was fetched, and temporary capture scripts/frames were removed.
+
+The review regression first failed on duplicated selection highlights, then passed after deduplicating source meshes. Live calibre visibility and named orthographic zoom reset are now covered by the real browser check. Manual browser smoke confirmed hand selection through clear crystals, mobile Inspector PNG capture with restored camera offsets, and responsive inert/focus transitions. Source-document links target their public GitHub copies. Labelled explosion plates were refreshed after correcting the caption-background corner path.
+
+## Previous running-calibre verification
 
 The latest local app was inspected at 1440 × 1000 and 390 × 844. Both upright dials, seated rounded pusher, polished crown, reversal and whole-watch explosion were exercised. Crown changes from right to left through C100's half-turn while C000 remains fixed. Mobile calibre focus has no horizontal overflow and the application error panel remains empty.
 

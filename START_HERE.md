@@ -1,6 +1,6 @@
 # Start here
 
-The project includes a **photograph-informed 3D exterior, detailed educational movement and guided assembly app for this specific Q2718110**, rather than a generic Reverso. Run it with `npm ci` and `npm run serve`, then open `http://127.0.0.1:8000/model/`. Choose Calibre or Calibre exploded for movement close views; use Play/Pause, scrub and previous/next stage controls for the guided assembly.
+The project includes a **photograph-informed 3D exterior, detailed educational movement and guided assembly gallery for this specific Q2718110**, rather than a generic Reverso. Run it with `npm ci` and `npm run serve`, then open `http://127.0.0.1:8000/model/`. Watch opens an angled case close-up; Mechanism exposes Calibre, Calibre exploded and assembly playback; Sources retains evidence and uncertainty. The inspector holds visibility, camera and export options, and starts collapsed on mobile.
 
 ## Read in this order
 

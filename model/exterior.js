@@ -89,7 +89,7 @@ export const PARAMETERS = Object.freeze({
     crownPositionX_mm: 13.2,
     crownKnurlCount: 36,
     crownKnurlRadius_mm: 0.07,
-    gadroonRadius_mm: 0.34,
+    gadroonRelief_mm: 0.16,
     gadroonPitch_mm: 0.94,
     pusherWidth_mm: 1.0,
     pusherHeight_mm: 4.0,
@@ -104,26 +104,25 @@ export const PARAMETERS = Object.freeze({
     braceletColumns: 5,
     braceletUnitsPerSide: 6,
     braceletUnitPitch_mm: 4.5,
-    braceletLinkGap_mm: 0.2,
-    braceletLinkDepth_mm: 2.1,
-    braceletLinkCrown_mm: 0.32,
+    braceletLinkGap_mm: 0.16,
+    braceletLinkDepth_mm: 1.85,
+    braceletLinkCrown_mm: 0.24,
     braceletStaggerFraction: 0.5,
     braceletStartY_mm: 25.0,
-    braceletCurve_mm: 0.006,
-    rectoNumeralHeight_mm: 3.65,
-    rectoNumeralSqueeze: 0.72,
+    braceletCurve_mm: 0.012,
+    rectoNumeralHeight_mm: 2.9,
     rectoNumeralPositions_mm: Object.freeze([
       [11, -6.4, 13.8], [12, 0, 13.8], [1, 6.4, 13.8],
       [10, -8.0, 8.2], [9, -8.0, 2.6], [8, -8.0, -3.0],
       [2, 8.0, 8.2], [3, 8.0, 2.6], [4, 8.0, -3.0],
       [7, -6.8, -12.8], [5, 6.8, -12.8],
     ]),
-    rectoWeaveField_mm: Object.freeze({ x: -6.2, y: 10.8, width: 12.4, height: 18.5, pitch: 0.22, alpha: 0.15 }),
+    rectoWeaveField_mm: Object.freeze({ x: -6.0, y: 10.6, width: 12.0, height: 18.0, pitch: 0.17, alpha: 0.085 }),
     rectoSecondsRadius_mm: 3.5,
     rectoHourLength_mm: 7.1,
     rectoMinuteLength_mm: 9.4,
-    rectoHourHalfWidth_mm: 0.29,
-    rectoMinuteHalfWidth_mm: 0.22,
+    rectoHourHalfWidth_mm: 0.34,
+    rectoMinuteHalfWidth_mm: 0.25,
     rectoSecondsCenterY_mm: -10.8,
     reverseTimeCenterY_mm: 5.2,
     reverse24hCenterY_mm: -9.6,
@@ -133,8 +132,8 @@ export const PARAMETERS = Object.freeze({
   // Presentation choices that are NOT physical dimensions.
   presentation: Object.freeze({
     neutralTime: '08:20:35 (U01 hand arrangement: hour toward 8, minute toward 4); illustrative pose, not a claim about the photographed instant',
-    reverse24hZeroOrientation: 'artistic: zero drawn at the top of the lower register',
-    rectoHandStyle: 'blue-black straight baton hour/minute with minimally tapered tips, needle small seconds',
+    reverse24hZeroOrientation: 'artistic pointer zero at top; exact lower printing omitted pending a sharper reference',
+    rectoHandStyle: 'faceted blue-black tapered baton hour/minute, needle small seconds; editable photo-informed profiles',
     reverseHandStyle: 'slim silver hour/minute with inset look, silver 24-hour pointer',
     dialZeroAngleIsArtistic: true,
   }),
@@ -183,11 +182,6 @@ const Y = mm => DIAL_CANVAS_H / 2 - mm * PX;
 const P = mm => mm * PX;
 
 const FONT_SANS = '"Helvetica Neue", Helvetica, Arial, sans-serif';
-// Dial numerals: the owner photo shows tall plain black Arabic digits, not a
-// serif face. A condensed sans (Arial/Helvetica, horizontally squeezed) is the
-// closest careful approximation; the exact typeface is deliberately provisional,
-// not a claimed traced match.
-const FONT_DIAL_NUMERAL = 'Arial, Helvetica, sans-serif';
 
 function fillRoundedRect(ctx, x, y, w, h, r, fill) {
   ctx.beginPath();
@@ -237,27 +231,44 @@ function drawFineWeave(ctx, xMm, yMm, wMm, hMm, pitchMm, alpha) {
   ctx.restore();
 }
 
-/** Draw a numeral as a tall, slightly condensed sans glyph (photo: tall plain
- *  black Arabic digits, no serif). Horizontal squeeze is applied via scale so
- *  the digits read narrow and tall like the owner watch; provisional, not traced. */
-function drawTallNumeral(ctx, text, cx, cy, sizeMm, squeeze = 0.82) {
+// Original tall Arabic strokes, drawn from U01's visible rhythm rather than a
+// squeezed system font. These are editable silhouettes, not calibrated traces.
+const ARABIC_GLYPHS = Object.freeze({
+  '0': 'M .28 .04 C .09 .04 .07 .23 .07 .5 C .07 .79 .09 .96 .28 .96 C .47 .96 .49 .79 .49 .5 C .49 .23 .47 .04 .28 .04 Z',
+  '1': 'M .06 .19 L .25 .04 L .25 .96',
+  '2': 'M .07 .21 C .09 -.01 .47 -.02 .49 .22 C .51 .43 .28 .59 .09 .85 L .06 .96 L .51 .96',
+  '3': 'M .07 .13 C .23 -.05 .49 .02 .48 .24 C .47 .4 .37 .47 .23 .47 M .23 .47 C .4 .46 .51 .56 .5 .74 C .49 .99 .19 1.03 .06 .86',
+  '4': 'M .4 .96 L .4 .04 L .04 .66 L .53 .66',
+  '5': 'M .49 .04 L .12 .04 L .09 .44 C .25 .35 .47 .4 .49 .64 C .52 .92 .27 1.06 .06 .87',
+  '6': 'M .45 .08 C .16 -.09 .06 .26 .06 .61 C .06 1.07 .5 1.1 .5 .7 C .5 .36 .13 .34 .07 .64',
+  '7': 'M .04 .04 L .51 .04 L .2 .96',
+  '8': 'M .27 .46 C -.01 .34 .05 .02 .28 .04 C .52 .03 .56 .35 .27 .46 C -.05 .57 .02 .98 .28 .96 C .56 .98 .61 .57 .27 .46 Z',
+  '9': 'M .48 .37 C .43 .66 .05 .57 .06 .29 C .07 -.07 .51 -.05 .5 .39 C .5 .75 .39 1.04 .12 .93',
+});
+
+function drawTallNumeral(ctx, text, cx, cy, sizeMm) {
+  const height = P(sizeMm);
+  const advance = 0.64;
   ctx.save();
-  ctx.translate(cx, cy);
-  ctx.scale(squeeze, 1);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = `500 ${P(sizeMm)}px ${FONT_DIAL_NUMERAL}`;
-  ctx.fillText(text, 0, 0);
+  ctx.translate(cx - (text.length * advance - 0.08) * height / 2, cy - height / 2);
+  ctx.scale(height, height);
+  ctx.lineWidth = 0.105;
+  ctx.lineCap = 'butt';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = ctx.fillStyle;
+  for (const digit of text) {
+    ctx.stroke(new Path2D(ARABIC_GLYPHS[digit]));
+    ctx.translate(advance, 0);
+  }
   ctx.restore();
 }
 
 /** Rectangular Arabic layout observed on U01. No large 6 over the seconds. */
 function drawRectoNumerals(ctx) {
   const L = PARAMETERS.illustrative;
-  const positions = L.rectoNumeralPositions_mm;
-  ctx.fillStyle = '#050608';
-  for (const [hour, x, y] of positions) {
-    drawTallNumeral(ctx, String(hour), X(x), Y(y), L.rectoNumeralHeight_mm, L.rectoNumeralSqueeze);
+  ctx.fillStyle = '#151719';
+  for (const [hour, x, y] of L.rectoNumeralPositions_mm) {
+    drawTallNumeral(ctx, String(hour), X(x), Y(y), L.rectoNumeralHeight_mm);
   }
 }
 
@@ -266,16 +277,20 @@ function drawRectoSecondsRegister(ctx, centerYMm, radiusMm) {
   const cy = Y(centerYMm);
   const r = P(radiusMm);
   // Lower inset boundary, kept separate from the circular track (docs/03).
-  fillRoundedRect(
-    ctx,
-    X(-4.25), Y(centerYMm + 4.2), P(8.5), P(8.4), P(0.55),
-    'rgba(246, 245, 240, 0.98)',
-  );
-  // Crisp circular track. Line weights are authored in mm (via P) rather than
-  // raw canvas pixels, so the ring and ticks keep their relative weight when
-  // the 1024 px dial texture is downsampled to a ~170 px on-screen dial.
+  const inset = ctx.createLinearGradient(0, cy - r, 0, cy + r);
+  inset.addColorStop(0, '#d8dad6');
+  inset.addColorStop(0.18, '#efefea');
+  inset.addColorStop(1, '#e6e7e1');
+  fillRoundedRect(ctx, X(-4.25), Y(centerYMm + 4.2), P(8.5), P(8.4), P(0.35), inset);
   ctx.save();
-  ctx.strokeStyle = '#20262e';
+  ctx.strokeStyle = 'rgba(94, 100, 100, 0.24)';
+  ctx.lineWidth = P(0.035);
+  for (let ring = P(0.45); ring < r - P(0.7); ring += P(0.13)) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, ring, 0, PI * 2);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(45, 51, 50, 0.55)';
   ctx.lineWidth = P(0.07);
   ctx.beginPath();
   ctx.arc(cx, cy, r + P(0.35), 0, PI * 2);
@@ -284,9 +299,9 @@ function drawRectoSecondsRegister(ctx, centerYMm, radiusMm) {
   for (let i = 0; i < 60; i++) {
     const a = (i / 60) * PI * 2 - PI / 2;
     const outer = r;
-    const inner = r - (i % 5 === 0 ? P(0.85) : P(0.45));
-    ctx.strokeStyle = i % 5 === 0 ? '#050608' : 'rgba(40, 46, 56, 0.9)';
-    ctx.lineWidth = i % 5 === 0 ? P(0.1) : P(0.05);
+    const inner = r - (i % 5 === 0 ? P(0.5) : P(0.25));
+    ctx.strokeStyle = i % 5 === 0 ? '#242829' : 'rgba(55, 60, 62, 0.65)';
+    ctx.lineWidth = i % 5 === 0 ? P(0.075) : P(0.035);
     ctx.beginPath();
     ctx.moveTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner);
     ctx.lineTo(cx + Math.cos(a) * outer, cy + Math.sin(a) * outer);
@@ -298,9 +313,9 @@ function drawRectoSecondsRegister(ctx, centerYMm, radiusMm) {
     const a = (n / 60) * PI * 2 - PI / 2;
     drawTallNumeral(
       ctx, String(n),
-      cx + Math.cos(a) * (r - P(1.7)),
-      cy + Math.sin(a) * (r - P(1.7)),
-      1.1, 0.8,
+      cx + Math.cos(a) * (r - P(1.0)),
+      cy + Math.sin(a) * (r - P(1.0)),
+      0.72,
     );
   }
   ctx.restore();
@@ -314,30 +329,36 @@ function dialRectoCanvas() {
   // Base silver with a lighter outer numeral zone (photo: lighter rim, patterned
   // centre). Transparent corners keep the plate from being an opaque backdrop.
   const base = ctx.createLinearGradient(0, 0, 0, DIAL_CANVAS_H);
-  base.addColorStop(0, '#f4f3ef');
-  base.addColorStop(0.5, '#eeede8');
-  base.addColorStop(1, '#e6e5e0');
+  base.addColorStop(0, '#e8e9e4');
+  base.addColorStop(0.5, '#f0f0eb');
+  base.addColorStop(1, '#dedfd9');
   fillRoundedRect(ctx, 0, 0, DIAL_CANVAS_W, DIAL_CANVAS_H, P(0.35), base);
 
-  // Fine patterned central field (U01: rectangular fine-textured centre with a
-  // separate plain outer numeral zone). Drawn as a soft rectangular weave with
-  // feathered edges and NO perimeter ring, so it cannot be mistaken for a
-  // second circular register. Alpha is kept low; the field is texture only.
+  // Pattern scale and sheen remain artistic; a thin inner railway separates
+  // the fine centre from the plain numeral zone visible in the private photo.
   const field = PARAMETERS.illustrative.rectoWeaveField_mm;
   const fieldX = X(field.x);
   const fieldY = Y(field.y);
   const fieldW = P(field.width);
   const fieldH = P(field.height);
   const fieldGrad = ctx.createLinearGradient(fieldX, fieldY, fieldX, fieldY + fieldH);
-  fieldGrad.addColorStop(0, 'rgba(198, 203, 211, 0.0)');
-  fieldGrad.addColorStop(0.18, 'rgba(198, 203, 211, 0.55)');
-  fieldGrad.addColorStop(0.82, 'rgba(205, 210, 217, 0.5)');
-  fieldGrad.addColorStop(1, 'rgba(210, 215, 221, 0.0)');
+  fieldGrad.addColorStop(0, 'rgba(191, 196, 192, 0.18)');
+  fieldGrad.addColorStop(0.18, 'rgba(202, 207, 201, 0.28)');
+  fieldGrad.addColorStop(0.82, 'rgba(219, 221, 213, 0.2)');
+  fieldGrad.addColorStop(1, 'rgba(210, 214, 205, 0.12)');
   ctx.save();
   ctx.fillStyle = fieldGrad;
   ctx.fillRect(fieldX, fieldY, fieldW, fieldH);
   ctx.restore();
   drawFineWeave(ctx, field.x, field.y, field.width, field.height, field.pitch, field.alpha);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(83, 89, 82, 0.25)';
+  ctx.lineWidth = P(0.025);
+  ctx.strokeRect(fieldX - P(0.12), fieldY - P(0.12), fieldW + P(0.24), fieldH + P(0.24));
+  ctx.setLineDash([P(0.08), P(0.25)]);
+  ctx.lineWidth = P(0.085);
+  ctx.strokeRect(fieldX + P(0.13), fieldY + P(0.13), fieldW - P(0.26), fieldH - P(0.26));
+  ctx.restore();
 
   // Seconds register FIRST, so the hour numerals 5 and 7 drawn afterwards sit
   // on top of the lower inset instead of being hidden underneath it.
@@ -345,14 +366,11 @@ function dialRectoCanvas() {
 
   // Subtle brand placement matching the photo. Deliberately not a modern lockup.
   ctx.save();
-  ctx.fillStyle = 'rgba(40, 46, 56, 0.78)';
+  ctx.fillStyle = 'rgba(55, 61, 54, 0.56)';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `${P(0.78)}px ${FONT_SANS}`;
+  ctx.font = `${P(0.64)}px ${FONT_SANS}`;
   ctx.fillText('JAEGER-LECOULTRE', X(0), Y(8.6));
-  ctx.font = `${P(0.65)}px ${FONT_SANS}`;
-  ctx.fillStyle = 'rgba(60, 66, 78, 0.55)';
-  ctx.fillText('REVERSO', X(0), Y(7.3));
   ctx.restore();
 
   drawRectoNumerals(ctx);
@@ -372,9 +390,7 @@ function dialReverseCanvas() {
   base.addColorStop(1, '#0f1114');
   fillRoundedRect(ctx, 0, 0, DIAL_CANVAS_W, DIAL_CANVAS_H, P(1.1), base);
 
-  // Fine rectangular weave over the whole dark plate, same treatment as the
-  // recto centre field now that drawGuilloche is gone.
-  drawFineWeave(ctx, -10.1, 11.6, 20.2, 20.2, 0.6, 0.12);
+  drawFineWeave(ctx, -10.1, 15.6, 20.2, 31.2, 0.21, 0.16);
 
   const timeCY = PARAMETERS.illustrative.reverseTimeCenterY_mm;
   const timeR = 8.8;
@@ -382,6 +398,14 @@ function dialReverseCanvas() {
   const cy = Y(timeCY);
   const r = P(timeR);
 
+  const register = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+  register.addColorStop(0, '#292b2b');
+  register.addColorStop(0.82, '#202222');
+  register.addColorStop(1, '#363938');
+  ctx.fillStyle = register;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, PI * 2);
+  ctx.fill();
   // Upper circular time display.
   ctx.save();
   ctx.strokeStyle = 'rgba(214, 218, 226, 0.55)';
@@ -414,7 +438,7 @@ function dialReverseCanvas() {
   ctx.fillStyle = '#f4f6fa';
   for (const hour of [12, 3, 9]) {
     const a = hour * 30 * (PI / 180);
-    drawTallNumeral(ctx, String(hour), cx + Math.sin(a) * P(6.9), cy - Math.cos(a) * P(6.9), 2.6, 0.8);
+    drawTallNumeral(ctx, String(hour), cx + Math.sin(a) * P(6.9), cy - Math.cos(a) * P(6.9), 2.35);
   }
   ctx.restore();
 
@@ -423,9 +447,13 @@ function dialReverseCanvas() {
   const dcy = Y(dayCY);
   const dr = P(dayR);
 
-  // Lower provisional 24-hour register. Zero is drawn at the top: explicitly
-  // artistic, because the true track zero is unresolved (data/scene-spec.json).
+  // Lower 24-hour scale remains intentionally unlettered. Its exact printing
+  // and zero orientation are not resolved by U03; the pointer zero is artistic.
   ctx.save();
+  ctx.fillStyle = '#292c2a';
+  ctx.beginPath();
+  ctx.arc(cx, dcy, dr, 0, PI * 2);
+  ctx.fill();
   ctx.strokeStyle = 'rgba(214, 218, 226, 0.55)';
   ctx.lineWidth = 1.4;
   ctx.beginPath();
@@ -441,34 +469,36 @@ function dialReverseCanvas() {
     ctx.lineTo(cx + Math.cos(a) * dr, dcy + Math.sin(a) * dr);
     ctx.stroke();
   }
-  ctx.fillStyle = '#e8ebf0';
-  ctx.font = `${P(0.95)}px ${FONT_SANS}`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  for (const [label, hour] of [['0', 0], ['6', 6], ['12', 12], ['18', 18]]) {
-    const a = (hour / 24) * PI * 2 - PI / 2;
-    ctx.fillText(label, cx + Math.cos(a) * (dr - P(1.5)), dcy + Math.sin(a) * (dr - P(1.5)));
-  }
   // DAY / NIGHT flank the lower register (observed in U03). Sized and centred so
   // each word sits fully inside the dial canvas and the case aperture: the
   // register rim is at +/-4.4 mm and the aperture edge at +/-10.0 mm, so the
   // labels are centred at +/-7.0 mm with a reduced face.
-  ctx.font = `${P(1.0)}px ${FONT_SANS}`;
-  ctx.fillStyle = 'rgba(224, 228, 236, 0.95)';
+  ctx.font = `${P(0.68)}px ${FONT_SANS}`;
+  ctx.fillStyle = 'rgba(212, 217, 211, 0.78)';
   ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
   ctx.fillText('DAY', X(-7.0), dcy);
   ctx.fillText('NIGHT', X(7.0), dcy);
   ctx.restore();
 
-  // Small, unobtrusive reverse wordmark.
-  ctx.save();
-  ctx.fillStyle = 'rgba(206, 212, 222, 0.6)';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = `${P(0.78)}px ${FONT_SANS}`;
-  ctx.fillText('R E V E R S O', X(0), Y(14.6));
-  ctx.restore();
 
+  return canvas;
+}
+
+// Sub-millimetre finish is texture, not extra mesh tessellation. No photograph
+// data enters this map; period/amplitude are editable rendering choices.
+function dialFinishCanvas(reverse = false) {
+  const canvas = makeCanvas(256, Math.round(256 * DIAL_MM_H / DIAL_MM_W));
+  if (!canvas) return null;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#808080';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const left = reverse ? 0 : canvas.width * 0.21;
+  const right = reverse ? canvas.width : canvas.width * 0.79;
+  for (let y = 0; y < canvas.height; y += 2) {
+    ctx.fillStyle = y % 4 === 0 ? '#888888' : '#787878';
+    ctx.fillRect(left, y, right - left, 1);
+  }
   return canvas;
 }
 
@@ -507,7 +537,7 @@ function nativeBufferGeometry(geometry) {
 /** Polished rounded-rectangular ring (frame) with a rounded window. */
 function roundedRingGeometry(outerW, outerH, outerR, innerW, innerH, innerR, depth, bevel = 0.22) {
   const shape = roundedRectPath(new THREE.Shape(), outerW, outerH, outerR);
-  shape.holes.push(roundedRectPath(new THREE.Path(), innerW, innerH, innerR));
+  if (innerW > 0 && innerH > 0) shape.holes.push(roundedRectPath(new THREE.Path(), innerW, innerH, innerR));
   const geometry = new THREE.ExtrudeGeometry(shape, {
     depth,
     bevelEnabled: bevel > 0,
@@ -521,47 +551,55 @@ function roundedRingGeometry(outerW, outerH, outerR, innerW, innerH, innerR, dep
   return nativeBufferGeometry(geometry);
 }
 
-/** Beveled articulated link with a shallow longitudinal curve, not a pillow.
- *  Chamfer and curvature are illustrative surface choices; no hidden hinge. */
+/** Five-column link surface: rounded shoulders and rolled ends catch long
+ * reflections instead of flat chrome tiles. No hidden hinge is inferred. */
 function linkColumnGeometry(width, height, depth, crown = 0.16) {
-  const x = width / 2;
-  const y = height / 2;
-  const chamfer = Math.min(width, height) * 0.08;
-  const shape = new THREE.Shape();
-  shape.moveTo(-x + chamfer, -y);
-  shape.lineTo(x - chamfer, -y);
-  shape.lineTo(x, -y + chamfer);
-  for (const fraction of [-0.5, 0, 0.5]) shape.lineTo(x, y * fraction);
-  shape.lineTo(x, y - chamfer);
-  shape.lineTo(x - chamfer, y);
-  shape.lineTo(-x + chamfer, y);
-  shape.lineTo(-x, y - chamfer);
-  for (const fraction of [0.5, 0, -0.5]) shape.lineTo(-x, y * fraction);
-  shape.lineTo(-x, -y + chamfer);
-  shape.closePath();
-  const geometry = new THREE.ExtrudeGeometry(shape, {
-    depth, bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.1,
-    bevelSegments: 2, curveSegments: 8,
-  });
-  geometry.translate(0, 0, -depth / 2);
-  const positions = geometry.attributes.position;
-  const normals = geometry.attributes.normal;
-  for (let i = 0; i < positions.count; i++) {
-    const vertexY = positions.getY(i);
-    const t = Math.min(1, Math.abs(vertexY) / y);
-    positions.setZ(i, positions.getZ(i) + crown * Math.cos(t * PI / 2));
-    // Transform the original cap/bevel normal by the crown's inverse transpose.
-    // Recomputing nonindexed triangle normals creates faceted cap reflections.
-    const slope = Math.abs(vertexY) < y ? -crown * PI / (2 * y) * Math.sin(t * PI / 2) * Math.sign(vertexY) : 0;
-    const nx = normals.getX(i);
-    const nz = normals.getZ(i);
-    const ny = normals.getY(i) - slope * nz;
-    const inverseLength = 1 / Math.hypot(nx, ny, nz);
-    normals.setXYZ(i, nx * inverseLength, ny * inverseLength, nz * inverseLength);
+  const positions = [];
+  const indices = [];
+  const across = 4;
+  const along = 6;
+  const point = (u, v, top) => {
+    const shoulder = 1 - 0.055 * Math.pow(Math.abs(v), 4);
+    const x = u * width / 2 * shoulder;
+    const y = v * height / 2;
+    const roll = Math.cos(v * PI / 2);
+    const z = top ? depth / 2 + crown * roll - 0.14 * u * u - 0.18 * Math.pow(Math.abs(v), 6) : -depth / 2;
+    return [x, y, z];
+  };
+  // Separate cap and wall vertices retain the crisp seam without faceting caps.
+  for (const top of [true, false]) {
+    const start = positions.length / 3;
+    for (let j = 0; j <= along; j++) {
+      for (let i = 0; i <= across; i++) positions.push(...point(i * 2 / across - 1, j * 2 / along - 1, top));
+    }
+    for (let j = 0; j < along; j++) {
+      for (let i = 0; i < across; i++) {
+        const a = start + j * (across + 1) + i;
+        const b = a + 1;
+        const c = a + across + 1;
+        const d = c + 1;
+        if (top) indices.push(a, b, d, a, d, c);
+        else indices.push(a, d, b, a, c, d);
+      }
+    }
   }
-  positions.needsUpdate = true;
-  normals.needsUpdate = true;
-  return nativeBufferGeometry(geometry);
+  const perimeter = [];
+  for (let i = 0; i <= across; i++) perimeter.push([i * 2 / across - 1, -1]);
+  for (let j = 1; j <= along; j++) perimeter.push([1, j * 2 / along - 1]);
+  for (let i = across - 1; i >= 0; i--) perimeter.push([i * 2 / across - 1, 1]);
+  for (let j = along - 1; j > 0; j--) perimeter.push([-1, j * 2 / along - 1]);
+  for (let i = 0; i < perimeter.length; i++) {
+    const a = perimeter[i];
+    const b = perimeter[(i + 1) % perimeter.length];
+    const start = positions.length / 3;
+    positions.push(...point(...a, false), ...point(...b, false), ...point(...b, true), ...point(...a, true));
+    indices.push(start, start + 1, start + 2, start, start + 2, start + 3);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
 function extrudeFlatShape(shape, depth) {
@@ -578,17 +616,19 @@ function extrudeFlatShape(shape, depth) {
   return nativeBufferGeometry(geometry);
 }
 
-/** Nearly parallel baton, with a short tail and a minimally tapered tip. */
+/** Photographed baton silhouette: a narrow waist, broad working blade and
+ * modest pointed tip. The bevel supplies the blue-black highlight edge. */
 function handShape(length, tail, halfWidth) {
   const shape = new THREE.Shape();
-  shape.moveTo(-halfWidth * 0.65, -tail);
-  shape.lineTo(-halfWidth, 0);
-  shape.lineTo(-halfWidth * 0.85, length * 0.88);
-  shape.lineTo(-halfWidth * 0.25, length);
-  shape.lineTo(halfWidth * 0.25, length);
-  shape.lineTo(halfWidth * 0.85, length * 0.88);
-  shape.lineTo(halfWidth, 0);
-  shape.lineTo(halfWidth * 0.65, -tail);
+  shape.moveTo(-halfWidth * 0.55, -tail);
+  shape.lineTo(-halfWidth * 0.8, length * 0.08);
+  shape.lineTo(-halfWidth, length * 0.25);
+  shape.lineTo(-halfWidth * 0.72, length * 0.9);
+  shape.lineTo(0, length);
+  shape.lineTo(halfWidth * 0.72, length * 0.9);
+  shape.lineTo(halfWidth, length * 0.25);
+  shape.lineTo(halfWidth * 0.8, length * 0.08);
+  shape.lineTo(halfWidth * 0.55, -tail);
   shape.closePath();
   return shape;
 }
@@ -656,34 +696,38 @@ export function createWatch(sceneSpec) {
   const reverseDialTexture = canvasTexture(dialReverseCanvas());
 
   const steelPolished = new THREE.MeshPhysicalMaterial({
-    color: 0xdde0e4, metalness: 1, roughness: 0.16, envMapIntensity: 1.25,
+    color: 0xbec4c8, metalness: 1, roughness: 0.22, envMapIntensity: 1.0,
   });
   const steelSatin = new THREE.MeshPhysicalMaterial({
-    color: 0xcbd0d6, metalness: 1, roughness: 0.3, envMapIntensity: 1.1,
-    anisotropy: 0.35, anisotropyRotation: PI / 2,
+    color: 0xb7bcbe, metalness: 1, roughness: 0.36, envMapIntensity: 0.95,
+    anisotropy: 0.28, anisotropyRotation: PI / 2,
   });
+  const braceletSteel = new THREE.MeshPhysicalMaterial({ color: 0xb8bdc1, metalness: 1, roughness: 0.26, envMapIntensity: 1.0 });
+  const braceletAccent = new THREE.MeshPhysicalMaterial({ color: 0xb2b8bc, metalness: 1, roughness: 0.3, envMapIntensity: 1.0 });
   const blueSteel = new THREE.MeshPhysicalMaterial({
-    color: 0x102741, metalness: 0.9, roughness: 0.2, envMapIntensity: 1.05,
+    color: 0x092f59, metalness: 0.92, roughness: 0.23, envMapIntensity: 0.9,
   });
   const silverHand = new THREE.MeshPhysicalMaterial({
-    color: 0xd9dde3, metalness: 1, roughness: 0.2, envMapIntensity: 1.2,
+    color: 0xc5ccce, metalness: 1, roughness: 0.24, envMapIntensity: 1.0,
   });
   // Dials face their own viewer only (FrontSide). The reverse dial's outward
   // facing is baked into its geometry, so its front face is the -Z side.
   const rectoDialMaterial = new THREE.MeshStandardMaterial({
-    map: rectoDialTexture, color: 0xffffff, metalness: 0.28, roughness: 0.62,
+    map: rectoDialTexture, color: 0xffffff, metalness: 0.32, roughness: 0.54,
+    bumpMap: canvasTexture(dialFinishCanvas(), { srgb: false }), bumpScale: 0.018,
     transparent: true, alphaTest: 0.12, side: THREE.FrontSide,
   });
   const reverseDialMaterial = new THREE.MeshStandardMaterial({
-    map: reverseDialTexture, color: 0xffffff, metalness: 0.12, roughness: 0.5,
+    map: reverseDialTexture, color: 0xffffff, metalness: 0.24, roughness: 0.48,
+    bumpMap: canvasTexture(dialFinishCanvas(true), { srgb: false }), bumpScale: 0.012,
     transparent: true, alphaTest: 0.12, side: THREE.FrontSide,
   });
   // Clear crystal volumes; IOR and thickness are illustrative rendering choices.
   // The reference is reported as sapphire, but the owner's crystal is untested.
   const crystalMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff, metalness: 0, roughness: 0.025, transmission: 0.98,
-    thickness: L.crystalThickness_mm, ior: 1.76, transparent: true, opacity: 0.24,
-    side: THREE.FrontSide, depthWrite: false, envMapIntensity: 0.85,
+    color: 0xf5fafb, metalness: 0, roughness: 0.035, transmission: 0.97,
+    thickness: L.crystalThickness_mm, ior: 1.76, transparent: true, opacity: 0.15,
+    side: THREE.FrontSide, depthWrite: false, envMapIntensity: 0.7,
   });
 
   const root = group('W000', {
@@ -751,13 +795,12 @@ export function createWatch(sceneSpec) {
       });
       endGroup.add(fitting);
     }
-    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, L.braceletWidth_mm - 0.4, 20), steelPolished);
-    bar.rotation.z = PI / 2;
-    bar.position.set(0, sign * 21.8, -0.6);
+    const bar = new THREE.Mesh(linkColumnGeometry(L.braceletWidth_mm + 0.6, 1.65, 2.2, 0.08), steelSatin);
+    bar.position.set(0, sign * 21.3, -0.75);
     tag(bar, {
-      id, name: `${id}_attach_bar`, part: 'attachment bar', label: 'bracelet attachment bar',
+      id, name: `${id}_attach_bar`, part: 'end transition', label: 'bracelet end bridge',
       evidenceStatus: 'observed_owner', sourceIds: ['U01'], geometryStatus: 'illustrative',
-      description: 'Visible bracelet attachment bar. No spring bar, screw or pivot is modelled.',
+      description: 'Visible broad end transition only. No hidden attachment bar, spring bar, screw or pivot is inferred.',
     });
     endGroup.add(bar);
     fixed.add(endGroup);
@@ -792,25 +835,29 @@ export function createWatch(sceneSpec) {
   // a checkerboard of square tiles. Reuse one link mesh profile per column.
   const braceletColumns = L.braceletColumns;
   const columnPitch = L.braceletWidth_mm / braceletColumns;
-  const columnWidth = columnPitch - L.braceletLinkGap_mm - 0.2;
-  const linkGeometry = linkColumnGeometry(columnWidth, L.braceletUnitPitch_mm - L.braceletLinkGap_mm - 0.2, L.braceletLinkDepth_mm, L.braceletLinkCrown_mm);
+  const columnWidth = columnPitch - L.braceletLinkGap_mm;
+  const linkGeometry = linkColumnGeometry(columnWidth, L.braceletUnitPitch_mm - L.braceletLinkGap_mm, L.braceletLinkDepth_mm, L.braceletLinkCrown_mm);
   const buildLinkRow = (parent, idPrefix, y, sign) => {
     for (let c = 0; c < braceletColumns; c++) {
       const x = (c - (braceletColumns - 1) / 2) * columnPitch;
-      const linkY = y + sign * (c % 2) * L.braceletUnitPitch_mm * L.braceletStaggerFraction;
-      const distance = Math.abs(linkY) - L.braceletStartY_mm;
-      const curveZ = -L.braceletCurve_mm * distance * distance;
-      const dome = 0.12 * (1 - Math.abs(x) / (L.braceletWidth_mm / 2));
-      const link = new THREE.Mesh(linkGeometry, steelPolished);
+      const arc = Math.abs(y) - L.braceletStartY_mm + (c % 2) * L.braceletUnitPitch_mm * L.braceletStaggerFraction;
+      // Arc-length spacing keeps the five staggered columns articulated while
+      // the outer rows droop; a quadratic world-Y offset stretches seams.
+      const radius = 1 / (2 * L.braceletCurve_mm);
+      const angle = arc / radius;
+      const linkY = sign * (L.braceletStartY_mm + radius * Math.sin(angle));
+      const curveZ = radius * (Math.cos(angle) - 1);
+      const dome = 0.1 * (1 - Math.abs(x) / (L.braceletWidth_mm / 2));
+      const link = new THREE.Mesh(linkGeometry, c % 2 ? braceletAccent : braceletSteel);
       link.position.set(x, linkY, -0.6 + dome + curveZ);
-      link.rotation.x = -Math.atan(2 * L.braceletCurve_mm * distance * sign);
+      link.rotation.x = -sign * angle;
       tag(link, {
         id: idPrefix.split('_')[0],
         name: `${idPrefix}_c${String(c + 1)}`,
         part: 'link',
         label: 'bracelet link',
         evidenceStatus: 'observed_owner', sourceIds: ['U01'], geometryStatus: 'illustrative',
-        description: 'Narrow beveled polished link in a staggered five-column rhythm. Link count and curvature are illustrative.',
+        description: 'Rounded-shoulder rolled link in a staggered five-column rhythm; arc-length drape preserves close seams. Count and profiles are illustrative.',
       });
       parent.add(link);
     }
@@ -822,7 +869,7 @@ export function createWatch(sceneSpec) {
       evidenceStatus: 'observed_owner',
       sourceIds: ['U01'],
       geometryStatus: 'unknown_construction',
-      description: 'End link joining the bracelet to the cradle attachment bar.',
+      description: 'Shaped end link transitioning from the cradle cheeks into five articulated columns. Hidden construction unresolved.',
     });
     const shape = new THREE.Shape();
     shape.moveTo(-9.7, -1.15);
@@ -830,7 +877,7 @@ export function createWatch(sceneSpec) {
     shape.lineTo(8.3, 1.15);
     shape.lineTo(-8.3, 1.15);
     shape.closePath();
-    const block = new THREE.Mesh(extrudeFlatShape(shape, 2.0), steelPolished);
+    const block = new THREE.Mesh(extrudeFlatShape(shape, 1.9), braceletSteel);
     block.position.set(0, sign * 22.0, -0.6);
     block.rotation.z = sign > 0 ? 0 : PI;
     tag(block, {
@@ -840,7 +887,7 @@ export function createWatch(sceneSpec) {
     });
     end.add(block);
     for (let c = 1; c < braceletColumns; c += 2) {
-      const finger = new THREE.Mesh(linkColumnGeometry(columnWidth, 2.2, L.braceletLinkDepth_mm, L.braceletLinkCrown_mm), steelPolished);
+      const finger = new THREE.Mesh(linkColumnGeometry(columnWidth, 2.2, L.braceletLinkDepth_mm, L.braceletLinkCrown_mm), braceletAccent);
       finger.position.set((c - (braceletColumns - 1) / 2) * columnPitch, sign * 24.1, -0.6);
       tag(finger, {
         id, name: `${id}_finger_${c}`, part: 'end link', label: 'end-link finger',
@@ -903,7 +950,7 @@ export function createWatch(sceneSpec) {
     description: 'Polished rounded rectangular case. Moving-case size is illustrative; only the outer envelope is sourced.',
   });
   const caseShell = new THREE.Mesh(
-    roundedRingGeometry(L.movingCaseWidth_mm, L.movingCaseLength_mm, L.caseCornerRadius_mm, L.dialApertureWidth_mm, L.dialApertureHeight_mm, 0.35, L.movingCaseDepth_mm, 0.28),
+    roundedRingGeometry(L.movingCaseWidth_mm, L.movingCaseLength_mm, L.caseCornerRadius_mm, L.dialApertureWidth_mm, L.dialApertureHeight_mm, 0.35, L.movingCaseDepth_mm, 0.22),
     steelPolished,
   );
   tag(caseShell, {
@@ -926,8 +973,8 @@ export function createWatch(sceneSpec) {
   });
   caseBody.add(caseMidframe);
 
-  // Three distinct horizontal ridges at each end span the full moving face.
-  // Cross-section and spacing follow the photo's rhythm, not measured machining.
+  // Three broad shallow relief bands grow from each end face, not cylindrical
+  // highlight rods. Profile, spacing and depth remain editable artist choices.
   const buildGadroons = (id, sign, label) => {
     const band = group(id, {
       label,
@@ -936,26 +983,22 @@ export function createWatch(sceneSpec) {
       geometryStatus: 'unknown_cross_section',
       description: 'Triple horizontal decorative ridges at a case end. Cross-section is illustrative.',
     });
-    // Sit the ridges just proud of the polished end face so the triple grooves
-    // actually read in the front view (a thin cylinder flush to the bevel
-    // vanished at render scale).
-    const surface = L.movingCaseDepth_mm / 2;
-    const yBase = L.movingCaseLength_mm / 2 - 0.8;
-    const ridgeLength = L.movingCaseWidth_mm - 0.1;
+    const surface = L.movingCaseDepth_mm / 2 + 0.22; // shell's front bevel plane
+    const yBase = L.movingCaseLength_mm / 2 - 0.75;
+    const ridgeGeometry = roundedRingGeometry(
+      L.movingCaseWidth_mm - 0.28, 0.72, 0.2, 0, 0, 0,
+      L.gadroonRelief_mm, 0.08,
+    );
     for (let i = 0; i < L.gadroonCountPerEnd; i++) {
       const y = sign * (yBase - i * L.gadroonPitch_mm);
       for (const face of [1, -1]) {
-        const ridge = new THREE.Mesh(
-          new THREE.CylinderGeometry(L.gadroonRadius_mm, L.gadroonRadius_mm, ridgeLength, 24),
-          steelPolished,
-        );
-        ridge.rotation.z = PI / 2;
-        ridge.position.set(0, y, face * (surface + 0.03));
+        const ridge = new THREE.Mesh(ridgeGeometry, steelPolished);
+        ridge.position.set(0, y, face * (surface + L.gadroonRelief_mm / 2 - 0.04));
         tag(ridge, {
           id, name: `${id}_${face > 0 ? 'front' : 'back'}_${i + 1}`, part: 'gadroon',
           label: 'gadroon ridge',
           evidenceStatus: 'observed_owner', sourceIds: ['U01'], geometryStatus: 'illustrative',
-          description: 'Illustrative ridge; machined cross-section not inferred from photo highlights.',
+          description: 'Shallow broad end-face relief, fused visually to the bezel. Not a measured machining cross-section.',
         });
         band.add(ridge);
       }
@@ -1021,6 +1064,14 @@ export function createWatch(sceneSpec) {
     hand.add(cap);
   };
   addPivotCap(rectoMinute, 'D003_pivot_cap', 0.52, 1, blueSteel);
+  const hubInset = new THREE.Mesh(new THREE.CircleGeometry(0.29, 20), steelSatin);
+  hubInset.position.z = 0.235;
+  tag(hubInset, {
+    id: 'D003', name: 'D003_hub_inset', part: 'visible hand hub', label: 'hand hub inset',
+    evidenceStatus: 'observed_owner', sourceIds: ['U01'], geometryStatus: 'illustrative',
+    description: 'Small restrained central hub highlight within the blue rim; no pivot construction inferred.',
+  });
+  rectoMinute.add(hubInset);
 
   const rectoSeconds = new THREE.Mesh(extrudeFlatShape(needleHandShape(3.1, 0.6, 0.1), 0.16), blueSteel);
   rectoSeconds.position.set(0, L.rectoSecondsCenterY_mm, 2.85);
@@ -1042,6 +1093,27 @@ export function createWatch(sceneSpec) {
     description: 'True transparent crystal. The source reports sapphire for the reference (S08); the owner crystal is untested and no optical value is measured.',
   });
   moving.add(rectoCrystal);
+  // The narrow perimeter carries the edge reflection; the clear face stays
+  // quiet. Both edges travel with their own crystal during explosion/export.
+  const crystalEdgeMaterial = new THREE.MeshPhysicalMaterial({
+    color: 0xcbd7da, metalness: 0, roughness: 0.08, transparent: true,
+    opacity: 0.22, depthWrite: false, envMapIntensity: 0.75,
+  });
+  const crystalEdgeGeometry = roundedRingGeometry(
+    L.crystalWidth_mm - 0.04, L.crystalHeight_mm - 0.04, 0.38,
+    L.crystalWidth_mm - 0.16, L.crystalHeight_mm - 0.16, 0.32, 0.06, 0.01,
+  );
+  const addCrystalEdge = (crystal, face) => {
+    const edge = new THREE.Mesh(crystalEdgeGeometry, crystalEdgeMaterial);
+    edge.position.z = face * 0.2;
+    tag(edge, {
+      id: crystal.userData.id, name: `${crystal.name}_edge`, part: 'crystal edge', label: 'crystal edge reflection',
+      evidenceStatus: crystal.userData.evidenceStatus, sourceIds: crystal.userData.sourceIds, geometryStatus: 'illustrative',
+      description: 'Subtle clear perimeter reflection. Optical values and edge dimensions are artistic, not measured.',
+    });
+    crystal.add(edge);
+  };
+  addCrystalEdge(rectoCrystal, 1);
 
   // Reverse stack: direct children of C100 in the assembled recto frame, with the
   // -Z facing baked into the geometry so explosion offsets apply verbatim.
@@ -1090,7 +1162,7 @@ export function createWatch(sceneSpec) {
   tag(reverse24, {
     id: 'D104', name: 'D104', label: 'reverse 24-hour hand',
     evidenceStatus: 'observed_supplied_photo', sourceIds: ['U03'], geometryStatus: 'illustrative',
-    description: '24-hour pointer on its own lower pivot. The track zero orientation is artistic and unresolved.',
+    description: '24-hour pointer on its own lower pivot. Pointer zero orientation is artistic; exact track printing is unresolved and omitted.',
   });
   moving.add(reverse24);
   addPivotCap(reverse24, 'D104_pivot_cap', 0.27, -1, silverHand);
@@ -1103,6 +1175,7 @@ export function createWatch(sceneSpec) {
     description: 'True transparent reverse crystal.',
   });
   moving.add(reverseCrystal);
+  addCrystalEdge(reverseCrystal, -1);
 
   // Source-informed educational internals; physical footprint and pivots stay unknown.
   moving.add(createMovement({
@@ -1205,7 +1278,7 @@ export function createWatch(sceneSpec) {
     },
     presentation: {
       dialZeroAngleIsArtistic: true,
-      reverse24hZeroOrientation: 'drawn at the top of the lower register; the true track zero is unresolved (data/scene-spec.json)',
+      reverse24hZeroOrientation: 'pointer zero at the top is artistic; exact lower printing is omitted pending a sharp reference (data/scene-spec.json)',
       neutralTime: PARAMETERS.presentation.neutralTime,
       crystals: 'true transparent (transmission, low opacity, no opaque map)',
       dialTextures: 'programmatically drawn; the owner photograph is never used as a texture',

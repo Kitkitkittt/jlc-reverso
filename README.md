@@ -17,11 +17,11 @@ npm run serve
 
 Open [http://127.0.0.1:8000/model/](http://127.0.0.1:8000/model/). No backend, accounts or external media requests are required.
 
-- Recto, reverse and oblique views; drag to orbit and scroll to zoom.
-- One clock drives six hands. The GMT pusher advances only the reverse offset by one hour; minutes remain linked.
-- Play or scrub case reversal. Scrubbing pauses playback and holds the chosen pose; Play resumes from there. Explosion is a separate, module-first presentation control.
-- Toggle callouts, crystals, bracelet and movement visibility. Calibre and Calibre exploded views expose twelve educational movement groups. Play, pause or scrub guided assembly and use previous/next stage controls. Run/Pause separately animates the balance, fork, escape wheel and train, including during explosion and assembly. Balance cadence is derived from 21,600 vph; amplitudes, train speeds and ratios are illustrative.
-- Download GLB, native Three.js JSON or a captioned PNG. Geometry is authored in mm; GLB applies one `0.001` meter conversion and includes four independent clips: case reversal, whole-watch explosion, calibre explosion and calibre assembly. The assembly clip includes running movement motion; native JSON stays in the assembled rest pose.
+- **Watch:** case-first gallery, upright front/back comparisons and a separate whole-watch view. Drag to orbit, scroll or pinch to zoom; use Flip for normal reversal.
+- **Mechanism:** whole-watch explosion and close educational calibre views. Play, pause or scrub guided assembly and use previous/next stages. Run/Pause independently animates the balance, fork, escape wheel and train; only balance cadence is catalogue-derived.
+- **Sources:** provenance and full accuracy limits without covering the default watch presentation. The concise educational notice stays visible in every mode.
+- Select a visible part to inspect its name, role and evidence. The inspector holds time/GMT, visibility and export controls; on mobile it starts collapsed. One clock drives six hands; GMT advances only the reverse hour offset and leaves minutes linked.
+- Download GLB, native Three.js JSON or a concise captioned PNG. Geometry is authored in mm; GLB applies one `0.001` meter conversion and includes four independent reversal, whole-watch explosion, calibre explosion and calibre assembly clips. Native JSON stays in the assembled rest pose.
 
 The procedural exterior source is [model/exterior.js](model/exterior.js); editable proportions are under `PARAMETERS.illustrative`. [model/movement.js](model/movement.js) authors the detailed movement in one source file, [model/assembly.js](model/assembly.js) defines shared guided-assembly stages, and [model/behavior.js](model/behavior.js) defines clock and presentation motion. Movement geometry is original, source-inspired educational work, not traced or calibrated factory geometry.
 
@@ -53,9 +53,9 @@ npm run build
 netlify deploy --dir dist --no-build --prod --site jlc-reverso-q2718110
 ```
 
-`dist/` contains only the app, required scene specification, generated exports/renders and locally bundled Three.js. Owner photographs, private files, credentials, research records and regression pages are not published. Netlify authentication and local site linkage stay outside versioned files. The app has no backend or runtime CDN dependency.
+`dist/` contains only the app, required scene specification, a field-allowlisted factual source index, generated exports/renders and locally bundled Three.js. Owner photographs, private files, credentials, raw research assets and regression pages are not published. Netlify authentication and local site linkage stay outside versioned files. Keep the site's toolbar and promotional badge disabled: their injected HUD previously caused a blocking resize error. Application errors are still reported normally. The app has no backend or runtime CDN dependency.
 
-The current appearance pass uses a single beveled case shell instead of cylindrical highlight strips, shallower triple gadroons, polished geometric crown knurling and a rounded rectangular GMT pusher seated into the flank near numeral 2. The cradle, Arabic numeral layout, blue-black batons, seconds inset and staggered bracelet links remain photograph-informed. No exact control dimensions or factory internal reconstruction are claimed.
+The gallery appearance pass improves close framing, studio reflections, case-end relief, five-column bracelet articulation, original Arabic numeral paths, blue-black hands, dial finish and educational movement depth. Surface and profile choices remain editable artistic approximations; they do not establish exact dimensions, factory typography or calibrated movement geometry.
 
 
 

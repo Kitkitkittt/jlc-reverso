@@ -23,15 +23,15 @@ Do not name an exact steel grade such as 316L without an adequate source. Do not
 
 Use physically plausible metal and transmission materials with restrained roughness. Any numeric roughness, IOR, bevel radius or lighting value is an artistic rendering parameter until independently specified.
 
-Use low-cost texture-based guilloche. The current crown uses geometric grip ridges and polished steel without a dark color texture; the single beveled case shell provides continuous highlights instead of extra metal strips. Add geometric relief only when close views justify it. Keep source-derived outlines independent of decorative detail so a material pass cannot silently change dimensions.
+Use low-cost texture-based guilloche and restrained surface maps. The exterior pass separates polished case edges, satin recesses, articulated bracelet surfaces and blue-black hands rather than using one mirror finish everywhere. Integrated shallow case-end relief and geometric crown grips provide local reflection cues; these profiles remain editable artistic approximations. Add geometric relief only when close views justify it. Keep source-derived outlines independent of decorative detail so a material pass cannot silently change evidence dimensions.
 
 The detailed movement uses original procedural perlage and tangent-oriented brushing on steel/brass-looking volumes, with circular brushing on wheels. These are rendering choices, not verified JLC finishing processes. Mainplate, bridges, winding, barrel, train and balance are source-informed artist geometry; escapement/hairspring are general educational shapes and display works are schematic. Reviewed [S07 footage](https://www.youtube.com/watch?v=BohN-EtjQuw) and the inspected [S09 photo](../references/movement-image-atlas.md) provide appearance context without calibrated internals or owner authentication.
 
 ## Camera and lighting
 
-Use an orthographic or long-lens render for reference comparisons, followed by a three-quarter hero view. Match both dial orientations under the same neutral light before trying dramatic lighting.
+The quiet-gallery presentation uses a warm neutral surround with broad softbox reflections and dark reflection cards. The default camera prioritizes the case rather than fitting the full bracelet; the whole-watch view remains available separately. Both upright faces use matched long-lens comparison framing, followed by an angled case view.
 
-A large soft light helps reveal case grooves and crown/pusher separation. Avoid lighting that washes out recto numerals or makes the dark dial appear as an exposed movement.
+Steel should retain dark-to-bright reflection gradients instead of clipping to white tiles. Crystal reflections must leave numerals and both registers readable. Improved bevels, roughness and procedural surface finishes are appearance choices, not factory machining or material measurements.
 
 ## Exploded plate requirements
 

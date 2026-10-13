@@ -206,6 +206,30 @@ frame.addEventListener('load', async () => {
     recto.click();
     assert(transforms([cradle]) === fixedPose, 'Fixed cradle transforms changed during assembly, reversal or explosion.');
     assert(viewer.state.running === clock.running && viewer.state.offsetHours === clock.offset && viewer.state.seconds > clock.seconds, 'Assembly presentation changed or stopped the existing clock.');
+    // Inspection must not mutate source materials or survive a mode change as
+    // an invisible highlight. Mode switches must expose the relevant controls.
+    viewer.setMode('mechanism');
+    assert(!doc.getElementById('mechRow').hidden && doc.getElementById('watchRow').hidden, 'Mechanism mode exposes unrelated watch controls.');
+    const balancePart = viewer.watchRoot.getObjectByName('M050');
+    const sourceMaterials = [];
+    balancePart.traverse(node => { if (node.isMesh) sourceMaterials.push([node, node.material]); });
+    viewer.selectPart('M050');
+    assert(!doc.getElementById('selectionCard').hidden && doc.getElementById('selectionCard').textContent.includes('Balance'), 'Selecting a movement part does not expose its description.');
+    assert(sourceMaterials.every(([node, material]) => node.material === material), 'Inspection mutates exported source materials.');
+    assert(new Set(viewer.selectionShells.map(({ source }) => source)).size === viewer.selectionShells.length, 'Selected parts are highlighted more than once.');
+    viewer.setVisible('M000', false);
+    assert(!viewer.watchRoot.getObjectByName('M000').visible, 'Calibre visibility toggle does not hide the live mechanism.');
+    viewer.setVisible('M000', true);
+    viewer.clearSelection();
+    assert(doc.getElementById('selectionCard').hidden, 'Clearing inspection leaves its card visible.');
+    viewer.setMode('watch');
+    assert(!doc.getElementById('watchRow').hidden && doc.getElementById('mechRow').hidden && cradle.visible, 'Watch mode does not restore exterior presentation.');
+    viewer.setCameraProjection('orthographic');
+    viewer.camera.zoom = 0.25;
+    viewer.camera.updateProjectionMatrix();
+    viewer.setView('recto');
+    assert(viewer.camera.zoom === 1, 'Named view retains stale orthographic zoom.');
+    viewer.setCameraProjection('perspective');
     noErrors();
     clearTimeout(deadline);
     if (result.dataset.check === 'pending') finish('pass', 'Reversal and calibre assembly playback, scrub holds, resume, stages, completion and recto reset passed.');
