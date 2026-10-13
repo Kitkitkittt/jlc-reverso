@@ -61,7 +61,15 @@ The initial public file set excludes the owner's wrist photograph and its privat
 Train time now accumulates with the selected speed per running frame, independently of wall-clock balance/escapement phase. Browser checks preserve all motion quaternions when changing speed while paused and then setting time or correcting GMT; resume continues from the same phase. `npm run check`, `python3 tools/validate_pack.py`, the real Chromium playback check and `npm run build` passed for this publication candidate.
 
 
-## Current local running-calibre verification
+## Quiet-gallery redesign verification
+
+The redesigned app was visually exercised at 1440 × 1000 and 390 × 844: angled case, both upright faces, whole bracelet, halfway reversal, whole-watch explosion, assembled calibre and mobile part inspection. Watch/Mechanism/Sources expose contextual controls. Selected-part cards clear the mobile navigation, stay bounded and resolve real source locators; no horizontal overflow or application error was observed.
+
+The Netlify toolbar and promotional badge are disabled at the host. A fresh production page contained no injected HUD script, and a desktop-to-mobile resize produced no error. Application error reporting remains intact.
+
+`npm run check` passed behavior, assembly, motion, outward-wound movement geometry/open bores and native round trips for 284 meshes. The real Chromium playback check also passed contextual mode changes and selection without mutating source materials. Reference validation passed 17 sources, 56 assembly records and 12 frame slots; physical evidence dimensions remain null. The build publishes a field-allowlisted factual source index, never private images or filesystem locators.
+
+## Previous running-calibre verification
 
 The latest local app was inspected at 1440 × 1000 and 390 × 844. Both upright dials, seated rounded pusher, polished crown, reversal and whole-watch explosion were exercised. Crown changes from right to left through C100's half-turn while C000 remains fixed. Mobile calibre focus has no horizontal overflow and the application error panel remains empty.
 

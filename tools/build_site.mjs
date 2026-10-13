@@ -14,6 +14,11 @@ for (const path of ['index.html', 'model', 'exports', 'renders']) {
   });
 }
 await cp(join(root, 'data/scene-spec.json'), join(dist, 'data/scene-spec.json'));
+// Publish factual provenance only, never private assets or filesystem locators.
+const records = JSON.parse(await readFile(join(root, 'data/sources.json'), 'utf8'));
+const fields = ['id', 'title', 'url', 'type', 'status', 'locator', 'rights', 'scope', 'identity_caveat', 'version_caveat', 'geometry_caveat'];
+await writeFile(join(dist, 'data/sources.json'), JSON.stringify({ sources: records.sources.map(record =>
+  Object.fromEntries(fields.filter(field => field in record).map(field => [field, record[field]]))) }));
 await mkdir(join(dist, 'vendor'), { recursive: true });
 for (const path of ['build', 'examples/jsm']) {
   await cp(join(root, 'node_modules/three', path), join(dist, 'vendor/three', path), { recursive: true });

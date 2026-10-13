@@ -158,16 +158,34 @@ export const ESCAPE_STEP_RADIANS = TAU / 15; // illustrative step, no counted te
 export const BALANCE_AMPLITUDE_RAD = 1.1;
 export const FORK_AMPLITUDE_RAD = 0.14;
 
-function extrusion(shape, thickness, bevel = 0.035) {
-  const geometry = new THREE.ExtrudeGeometry(shape, {
-    depth: thickness, bevelEnabled: bevel > 0, bevelThickness: bevel,
-    bevelSize: bevel, bevelSegments: 2, curveSegments: 36,
-  });
-  geometry.translate(0, 0, -thickness / 2);
-  // World-like face UVs keep the procedural finish consistent across plates.
+// Edge profiles. Every extruded part gets a real chamfer: `EDGE` is a narrow,
+// steep cut that catches a highlight along machine edges (two segments is
+// enough at this scale and adds no tessellation); `ROLLED` is wider and rounder
+// for parts whose silhouette is a roll rather than a plate (bearing stones,
+// screw heads). Both add material beyond the nominal thickness, which is the
+// visible thickness cue — still an artistic value, not a measured one.
+const EDGE = Object.freeze({ size: 0.02, thick: 0.055, segments: 2 });
+const ROLLED = Object.freeze({ size: 0.055, thick: 0.05, segments: 3 });
+
+/** World-like face UVs keep the procedural finish continuous across parts. */
+function worldUVs(geometry) {
   const positions = geometry.attributes.position;
   const uv = geometry.attributes.uv;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, positions.getX(i) / 6, positions.getY(i) / 6);
+  return geometry;
+}
+
+// ExtrudeGeometry splits its faces into group 0 (the two flat faces) and group 1
+// (every side wall, bore walls included), so a [face, edge] material pair gives
+// every part a machined chamfer without authoring a second geometry.
+function extrusion(shape, thickness, bevel = EDGE) {
+  const { size, thick, segments } = bevel;
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: thickness, bevelEnabled: true, bevelThickness: thick,
+    bevelSize: size, bevelSegments: segments, curveSegments: 36,
+  });
+  geometry.translate(0, 0, -thickness / 2);
+  worldUVs(geometry);
   // Serialize the centered vertices and authored UVs, not the extrusion recipe.
   geometry.type = 'BufferGeometry';
   delete geometry.parameters;
@@ -178,6 +196,11 @@ function extrusion(shape, thickness, bevel = 0.035) {
 // Original deterministic surface marks only; no source photograph is a texture.
 function finishTexture(kind) {
   if (typeof document === 'undefined') return null;
+  // UVs are world millimetres divided by six, so an unscaled texture period is
+  // six millimetres: 512 px / 6 mm ≈ 85 px/mm. Every pattern below states its
+  // size in pixels and millimetres, and every repeating pitch divides 512 so the
+  // finish wraps with no seam across a plate. The circular families scale their
+  // UVs to 0.75, which widens their period to eight millimetres.
   const size = 512;
   const normals = new Uint8ClampedArray(size * size * 4);
   const roughness = new Uint8ClampedArray(size * size * 4);
@@ -185,37 +208,63 @@ function finishTexture(kind) {
     for (let x = 0; x < size; x++) {
       let nx, ny, polish;
       if (kind === 'perlage') {
-        // Overlapping circular passes: the last lower-row stamp obscures the
-        // earlier one, leaving circular boundaries rather than square cells.
-        let row = Math.floor((y + 48) / 64);
-        let cx = ((x + (row % 2) * 32 + 32) % 64) - 32;
-        let cy = y - row * 64;
-        if (cx * cx + cy * cy > 48 * 48) {
+        // Overlapping circular passes in a half-offset grid: the lower row's
+        // stamp obscures the row above it, leaving circular boundaries rather
+        // than square cells. A 32 px pitch is a ~0.38 mm pass — the fine end of
+        // the decorative-graining band, and a seamless 16-column tile.
+        const pitch = 32;
+        const offset = pitch / 2;
+        let row = Math.floor((y + 48) / pitch);
+        let cx = ((x + (row % 2) * offset + offset) % pitch) - offset;
+        let cy = y - row * pitch;
+        if (cx * cx + cy * cy > (pitch * 0.75) ** 2) {
           row--;
-          cx = ((x + (row % 2) * 32 + 32) % 64 + 64) % 64 - 32;
-          cy = y - row * 64;
+          cx = ((x + (row % 2) * offset + offset) % pitch + pitch) % pitch - offset;
+          cy = y - row * pitch;
         }
         const radius = Math.max(1, Math.hypot(cx, cy));
-        const fade = Math.min(radius / 8, 1);
+        const fade = Math.min(radius / 4, 1);
+        // Shallow, oblique cuts: they catch the key light across each pass
+        // without turning the plate into a field of visible dimples.
         const swirl = Math.sin(radius * 0.9) * 0.05 * fade;
         const groove = Math.sin(radius * 2.1) * 0.025 * fade;
         nx = -cy / radius * swirl + cx / radius * groove;
         ny = cx / radius * swirl + cy / radius * groove;
         polish = 0.9 + Math.sin(radius * 0.55) * 0.018 + Math.sin(radius * 2.1) * 0.008;
       } else if (kind === 'circular') {
-        // Disc UVs use local XY centred on the wheel axis. Wrapped signed
-        // coordinates preserve concentric machining around that origin.
+        // Disc UVs are centred on the part's axis. A 14 px period is a ~0.16 mm
+        // turned line: fine enough to read as machining, wide enough to survive
+        // mip reduction instead of averaging away into flat grey. Wrapped signed
+        // coordinates keep the pattern concentric about that same origin.
         const cx = x < size / 2 ? x : x - size;
         const cy = y < size / 2 ? y : y - size;
         const radius = Math.max(1, Math.hypot(cx, cy));
-        const groove = Math.sin(radius * 1.1) * 0.16;
+        const groove = Math.sin(radius * TAU / 14) * 0.16;
         nx = cx / radius * groove;
         ny = cy / radius * groove;
-        polish = 0.92 + Math.sin(radius * 1.1) * 0.02;
+        polish = 0.92 + Math.sin(radius * TAU / 14) * 0.02;
+      } else if (kind === 'sunray') {
+        // Winding and ratchet wheels are finished radially, not concentrically.
+        // The 72 streaks run from the arbor outwards, and the perturbation is
+        // tangential to them, so each streak is a bright radial line. The ramp
+        // leaves the very centre smooth, as a real wheel's arbor boss is.
+        const cx = x < size / 2 ? x : x - size;
+        const cy = y < size / 2 ? y : y - size;
+        const radius = Math.hypot(cx, cy);
+        const angle = Math.atan2(cy, cx);
+        const ramp = Math.min(1, radius / 40);
+        const streak = Math.sin(angle * 72) * 0.13 * ramp;
+        nx = -Math.sin(angle) * streak;
+        ny = Math.cos(angle) * streak;
+        polish = 0.93 + Math.sin(angle * 72) * 0.018 * ramp;
       } else {
+        // Straight grain: a 16 px (0.19 mm) stripe period, so the linear finish
+        // on supports and levers has a visible direction rather than a texture
+        // that dissolves below the sampling limit.
+        const grain = Math.sin(y * TAU / 16 + Math.sin(x * 0.07) * 0.2);
         nx = 0;
-        ny = Math.sin(y * 1.3 + Math.sin(x * 0.07) * 0.2) * 0.1;
-        polish = 0.91 + Math.sin(y * 1.3) * 0.04;
+        ny = grain * 0.1;
+        polish = 0.91 + grain * 0.04;
       }
       const offset = (y * size + x) * 4;
       const inverseLength = 1 / Math.hypot(nx, ny, 1);
@@ -266,7 +315,24 @@ export function createMovement({ width = 18, height = 26, depth = 3 } = {}) {
   const paleBrass = material(0xe0bf72, 0.26);
   const steel = material(0x707c86, 0.31);
   const blueSteel = material(0x344658, 0.32);
+  // A bead-blasted steel with no directional map: lever springs, clicks and
+  // shanks read as matte next to the same colour of satin wheel.
+  const matteSteel = material(0x8d979f, 0.52);
+  // Winding and ratchet wheels are radially finished, unlike the concentric
+  // covers around them, so their highlight reads as a distinct starburst.
+  const sunraySteel = material(0x9aa4ac, 0.28, finishTexture('sunray'), 0.3);
+  // Cavity walls and the floor seen through an opening. Deliberately unpolished
+  // and unlit-dark, with no chamfer variant: it exists to give an opening or a
+  // recess a readable depth instead of showing an unbounded void.
+  const recess = material(0x2c3238, 0.66);
+  // Chamfer material: brighter and much smoother than the faces it separates, so
+  // the extruded side wall and bevel catch the studio highlight as one edge.
+  const edgeOf = base => material(base.color.clone().offsetHSL(0, -0.14, 0.07), Math.max(0.1, base.roughness * 0.55), null, 0.1);
+  const edge = new Map([silver, satin, circularSilver, circularSteel, polished, brass, paleBrass, steel, blueSteel, matteSteel, sunraySteel]
+    .map(base => [base, edgeOf(base)]));
   const ruby = new THREE.MeshStandardMaterial({ color: 0x742746, metalness: 0.18, roughness: 0.19 });
+  // Jewel setting: a bright rubbed-in ring rather than a flat metal washer.
+  const jewelSetting = new THREE.MeshStandardMaterial({ color: 0xc8b273, metalness: 0.92, roughness: 0.22 });
 
   const root = new THREE.Group();
   root.name = 'M000';
@@ -297,6 +363,12 @@ export function createMovement({ width = 18, height = 26, depth = 3 } = {}) {
     root.add(group);
     return group;
   };
+  /**
+   * Build a mesh. An explicit [face, wall] material pair is for parts whose two
+   * profile families differ; every other part wears one material. The single
+   * owner of a second wall material is `flat`, the only caller that knows it
+   * extruded a shape and therefore has a chamfer to shade.
+   */
   const mesh = (group, suffix, geometry, mat, x = 0, y = 0, z = 0, extra = {}) => {
     const object = new THREE.Mesh(geometry, mat);
     object.name = `${group.name}_${suffix}`;
@@ -306,37 +378,80 @@ export function createMovement({ width = 18, height = 26, depth = 3 } = {}) {
     group.add(object);
     return object;
   };
-  const flat = (group, suffix, shape, thickness, mat, x = 0, y = 0, z = 0, extra = {}) => {
-    const geometry = extrusion(shape, thickness);
-    if (mat === circularSilver || mat === circularSteel) {
-      // Keep the full barrel radius inside one signed circular texture period.
+  // Round-part finishes are authored around the part's own axis, so `flat` may
+  // rescale the UVs of the circular families before the mesh is built.
+  const flat = (group, suffix, shape, thickness, mat, x = 0, y = 0, z = 0, extra = {}, bevel = EDGE) => {
+    const geometry = extrusion(shape, thickness, bevel);
+    if (mat === circularSilver || mat === circularSteel || mat === sunraySteel) {
+      // Keep the full disc inside one signed circular texture period, so the
+      // finish is centred on this part's axis rather than on the sheet origin.
       const uv = geometry.attributes.uv;
       for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 0.75, uv.getY(i) * 0.75);
     }
-    return mesh(group, suffix, geometry, mat, x, y, z, extra);
+    // ExtrudeGeometry puts the flat faces in group 0 and every wall (bores
+    // included) in group 1, so pairing the face material with its chamfer
+    // variant gives the bevel and the side wall one machined edge material
+    // without a second geometry. Materials with no edge variant (jewels, rub-in
+    // settings) keep the single material they were given.
+    const walls = edge.get(mat);
+    return mesh(group, suffix, geometry, walls ? [mat, walls] : mat, x, y, z, extra);
   };
-  const disc = (group, suffix, radius, thickness, mat, x, y, z, bore = 0, extra = {}) =>
-    flat(group, suffix, diskShape(radius, bore), thickness, mat, x, y, z, extra);
-  const hub = (group, suffix, x, y, z, radius = 0.22, thickness = 0.28) =>
-    disc(group, suffix, radius, thickness, steel, x, y, z);
+  const disc = (group, suffix, radius, thickness, mat, x, y, z, bore = 0, extra = {}, bevel = EDGE) =>
+    flat(group, suffix, diskShape(radius, bore), thickness, mat, x, y, z, extra, bevel);
+  /**
+   * A turned part: pins, bosses, sunk rings and screw heads are lathed from a
+   * [radius, z] profile, so they carry the shoulder and broken top edge a
+   * machined part has instead of being a cylinder cut off square. A profile that
+   * starts and ends at the same point is a closed cross-section (an annulus, an
+   * open drum wall); the lathe does not join the last point back to the first,
+   * so those profiles must repeat their opening point themselves — otherwise the
+   * part is an open shell with a visible hole through its wall.
+   */
+  const turned = (group, suffix, profile, mat, x = 0, y = 0, z = 0, segments = 32) => {
+    const points = profile.map(([radius, height]) => new THREE.Vector2(radius, height));
+    const geometry = new THREE.LatheGeometry(points, segments);
+    geometry.rotateX(Math.PI / 2);
+    geometry.computeVertexNormals();
+    geometry.type = 'BufferGeometry';
+    delete geometry.parameters;
+    geometry.toJSON = THREE.BufferGeometry.prototype.toJSON;
+    return mesh(group, suffix, geometry, mat, x, y, z);
+  };
+  /**
+   * The profile of a short turned part: square at the bottom, broken by a
+   * chamfer at the top. That broken edge is what makes a pinion, boss or screw
+   * head catch the light as a machined rim rather than a flat cutout.
+   */
+  const turnedProfile = (radius, thickness, chamfer) => {
+    const c = Math.max(0.008, Math.min(chamfer, radius * 0.4, thickness * 0.3));
+    return [[0, -thickness / 2], [radius, -thickness / 2], [radius, thickness / 2 - c],
+      [radius - c * 0.7, thickness / 2], [0, thickness / 2]];
+  };
+  /** Close an annular profile by repeating its opening point. */
+  const closed = points => [...points, points[0]];
   /**
    * A spoked wheel. Every part is positioned at the wheel's own centre (x, y),
    * so each mesh's local origin is the arbor and a local +Z rotation spins the
-   * wheel in place about its pivot without orbiting the group origin.
+   * wheel in place about its pivot without orbiting the group origin. The rim is
+   * a chamfered ring, the spokes cross below the rim plane, and the boss and
+   * pinion are turned, so the wheel reads as a machined part rather than a flat
+   * cut-out at three depths.
    */
   const wheel = (group, suffix, x, y, radius, z, mat = brass, motion = null) => {
     const part = object => { if (motion) object.userData.motion = motion; return object; };
-    const shape = diskShape(radius, radius * 0.85);
-    part(flat(group, `${suffix}_rim`, shape, 0.13, mat, x, y, z));
-    part(disc(group, `${suffix}_hub`, radius * 0.22, 0.18, mat, x, y, z, radius * 0.08));
+    const rim = diskShape(radius, radius * 0.86);
+    part(flat(group, `${suffix}_rim`, rim, 0.15, mat, x, y, z));
     // ponytail: smooth rims and illustrative spokes; replace only with measured
     // profiles if a real tooth/pivot dataset becomes available. No counted teeth.
     for (let i = 0; i < 5; i++) {
       const spoke = polygon([[radius * 0.17, -0.085], [radius * 0.91, -0.13], [radius * 0.91, 0.13], [radius * 0.17, 0.085]]);
-      const arm = part(flat(group, `${suffix}_spoke_${i}`, spoke, 0.1, mat, x, y, z));
+      const arm = part(flat(group, `${suffix}_spoke_${i}`, spoke, 0.09, mat, x, y, z - 0.025, {}, ROLLED));
       arm.rotation.z = i * TAU / 5 + 0.17;
     }
-    part(hub(group, `${suffix}_pinion`, x, y, z + 0.16, Math.max(0.13, radius * 0.075), 0.3));
+    // The spokes cross on a raised boss and the arbor ends in a broken-edged
+    // pinion, which is the depth cue a wheel cut from one flat sheet lacks.
+    part(turned(group, `${suffix}_hub`, turnedProfile(radius * 0.22, 0.19, 0.05), mat, x, y, z, 44));
+    part(turned(group, `${suffix}_pinion`, turnedProfile(Math.max(0.13, radius * 0.075), 0.3, 0.05), steel, x, y, z + 0.17, 24));
   };
 
   const plate = subsystem('M001', 'Shaped mainplate', -0.57,
@@ -368,16 +483,30 @@ export function createMovement({ width = 18, height = 26, depth = 3 } = {}) {
     outline.holes.push(circlePath(x, y, r));
   }
   flat(plate, 'perlage_body', outline, 0.4, silver);
+  // The train opening is the one large hole a viewer can actually see into, so it
+  // gets a dark floor just below the plate: looking in you meet a machined cavity
+  // instead of an unbounded void. The barrel and balance openings are filled by
+  // their own parts, so they need no floor.
+  flat(plate, 'train_opening_floor', polygon(trainOpening.getPoints(24)), 0.06, recess, 0, 0, -0.26);
   for (const [i, x, y] of [[0, -6.8, -2.6], [1, 6.5, 7.9], [2, 6.3, -8.6]]) {
+    // Counterbore first, then the lip in it: the dark ring around each lip is
+    // the shadow gap of a recessed seat rather than a sticker on the surface.
+    disc(plate, `counterbore_${i}`, 0.92, 0.1, recess, x, y, 0.13, 0.68);
     disc(plate, `clearance_lip_${i}`, 0.83, 0.055, satin, x, y, 0.23, 0.7);
   }
 
   const barrel = subsystem('M020', 'Barrel region and cover', -0.06,
     'Silver circular cover and brass rim inspired by the exposed large circular cover in S07. Placement is reorganized into the illustrated bridge-side view, not a source-traced assembly. Mainspring, arbor construction and wheel teeth are not inferred.', REF.barrel);
-  disc(barrel, 'brass_drum_rim', 3.4, 0.37, brass, -4, -7, 0, 0.26);
-  disc(barrel, 'brushed_cover', 3.17, 0.13, circularSilver, -4, -7, 0.24, 0.24);
-  disc(barrel, 'cover_highlight_ring', 2.9, 0.035, polished, -4, -7, 0.325, 2.84);
-  hub(barrel, 'arbor_presentation', -4, -7, 0.37, 0.21, 0.25);
+  // The drum is a turned ring with a rolled outer wall, so its silhouette has a
+  // shoulder instead of a square edge; the cover drops inside the rim and is
+  // dished, and the arbor boss rises through both. Every dimension remains an
+  // illustrative proportion.
+  turned(barrel, 'brass_drum_rim', closed([[0.26, -0.185], [3.38, -0.185], [3.42, -0.12],
+    [3.42, 0.12], [3.38, 0.24], [0.26, 0.24]]), brass, -4, -7, 0, 64);
+  turned(barrel, 'brushed_cover', closed([[0.24, 0.06], [3.02, 0.06], [3.02, 0.16],
+    [2.94, 0.21], [0.24, 0.21]]), circularSilver, -4, -7, 0, 64);
+  disc(barrel, 'cover_highlight_ring', 2.72, 0.035, polished, -4, -7, 0.33, 2.62);
+  turned(barrel, 'arbor_presentation', turnedProfile(0.21, 0.3, 0.05), steel, -4, -7, 0.4, 24);
 
   const train = subsystem('M030', 'Going-train illustration', 0.08,
     'Readable brass spoked wheels and slim steel hubs inspired by the exposed train. Smooth rims deliberately omit unsupported tooth counts. This is a nonfunctional arrangement; centres, ratios, spoke counts and levels are artist chosen. The wheels turn during playback at illustrative relative rates, not a real gear ratio.', REF.train);
@@ -443,11 +572,14 @@ export function createMovement({ width = 18, height = 26, depth = 3 } = {}) {
   const windingCover = diskShape(2.83, 0.35);
   windingCover.holes.push(circlePath(1.77, -0.3, 0.39));
   flat(winding, 'central_silver_cover', windingCover, 0.14, circularSilver, 0.1, 0.65, 0.14);
-  disc(winding, 'central_winding_wheel', 1.07, 0.16, circularSteel, 0.1, 0.65, 0.39, 0.23).userData.motion = stillMotion;
-  hub(winding, 'central_winding_pivot', 0.1, 0.65, 0.55, 0.17, 0.16).userData.motion = stillMotion;
-  disc(winding, 'upper_winding_wheel', 1.55, 0.18, circularSilver, -1.45, 3.55, 0.19, 0.25).userData.motion = stillMotion;
-  hub(winding, 'upper_winding_pivot', -1.45, 3.55, 0.37, 0.19, 0.24).userData.motion = stillMotion;
-  disc(winding, 'setting_intermediate_wheel', 0.79, 0.12, circularSilver, 3.9, -0.15, 0.3, 0.2).userData.motion = stillMotion;
+  // The two winding wheels share the radially finished steel, so their highlight
+  // separates them from the concentric cover they sit on; the intermediate wheel
+  // keeps a turned finish because it is a different kind of part.
+  disc(winding, 'central_winding_wheel', 1.07, 0.16, sunraySteel, 0.1, 0.65, 0.39, 0.23).userData.motion = stillMotion;
+  turned(winding, 'central_winding_pivot', turnedProfile(0.17, 0.16, 0.04), steel, 0.1, 0.65, 0.55, 24).userData.motion = stillMotion;
+  disc(winding, 'upper_winding_wheel', 1.55, 0.18, sunraySteel, -1.45, 3.55, 0.19, 0.25).userData.motion = stillMotion;
+  turned(winding, 'upper_winding_pivot', turnedProfile(0.19, 0.24, 0.04), steel, -1.45, 3.55, 0.37, 24).userData.motion = stillMotion;
+  disc(winding, 'setting_intermediate_wheel', 0.79, 0.12, circularSteel, 3.9, -0.15, 0.3, 0.2).userData.motion = stillMotion;
   const settingLever = new THREE.Shape();
   settingLever.moveTo(5.5, 0.55);
   settingLever.bezierCurveTo(4.9, 0.45, 4.45, -0.2, 4.7, -1.0);
@@ -468,9 +600,14 @@ export function createMovement({ width = 18, height = 26, depth = 3 } = {}) {
   clickSpring.lineTo(5.55, -7.75);
   clickSpring.bezierCurveTo(2.3, -8.8, -0.6, -9.05, -3.9, -8.85);
   clickSpring.closePath();
-  flat(winding, 'lower_spring_lever', clickSpring, 0.11, steel, 0, 0, 0.14);
-  const stem = mesh(winding, 'visible_stem_segment', new THREE.CylinderGeometry(0.22, 0.22, 2.75, 24), steel, 7.25, 0.38, -0.24);
-  stem.rotation.z = Math.PI / 2;
+  // Springs and levers are matte so they separate from the polished steel of the
+  // wheels next to them, which is how a spring reads in a real movement view.
+  flat(winding, 'lower_spring_lever', clickSpring, 0.11, matteSteel, 0, 0, 0.14);
+  // The turned profile's axis is +Z (see `turned`), so the stem is aimed along X
+  // by a Y rotation; a Z rotation would leave the shaft pointing at the camera.
+  const stem = turned(winding, 'visible_stem_segment',
+    [[0, -1.375], [0.22, -1.375], [0.22, 1.3], [0.18, 1.375], [0, 1.375]], steel, 7.25, 0.38, -0.24, 24);
+  stem.rotation.y = Math.PI / 2;
 
   const escapement = subsystem('M040', 'Escapement teaching detail', 0.35,
     'Small smooth-rim brass wheel and fork explain the transition to the oscillator. S07 shows the balance region, but this fork outline and its placement are general-mechanical illustration, not an observed pallet geometry or operating escapement. During playback the wheel steps once per beat and the fork alternates; the step size is illustrative, not a counted tooth count.', REF.balance,
@@ -481,7 +618,7 @@ export function createMovement({ width = 18, height = 26, depth = 3 } = {}) {
   const fork = polygon([[-0.8, 0.35], [-0.7, 0.05], [0.1, -0.2], [0.3, -0.9], [0.9, -0.95], [1.05, -0.6], [0.6, -0.5], [0.4, 0.15], [-0.35, 0.45], [-0.35, 0.75], [-0.8, 0.85]]);
   const forkMesh = flat(escapement, 'fork_general_mechanical', fork, 0.1, blueSteel, -1.85, 5.5, 0.31);
   forkMesh.userData.motion = { kind: 'fork', amplitudeRad: FORK_AMPLITUDE_RAD };
-  hub(escapement, 'fork_pivot_illustration', -1.85, 5.5, 0.42, 0.12, 0.19);
+  turned(escapement, 'fork_pivot_illustration', turnedProfile(0.12, 0.19, 0.04), steel, -1.85, 5.5, 0.42, 24);
 
   const oscillator = subsystem('M050', 'Balance and support', 0.58,
     'Upper-left open brass balance rim and a sculpted silver support inspired by the assembled service view. The fine spiral is separately labelled general-mechanical because individual hairspring coils are not resolved in the inspected source. No beat rate, coil count or oscillating clearance is measured.', REF.balance);
@@ -493,11 +630,11 @@ export function createMovement({ width = 18, height = 26, depth = 3 } = {}) {
   const balanceRim = disc(oscillator, 'balance_rim', 3.0, 0.18, paleBrass, -4.5, 7.1, 0.05, 2.74);
   balanceRim.userData.motion = balanceMotion;
   for (let i = 0; i < 3; i++) {
-    const arm = flat(oscillator, `balance_arm_${i}`, polygon([[0.2, -0.075], [2.87, -0.11], [2.87, 0.11], [0.2, 0.075]]), 0.1, brass, -4.5, 7.1, 0.05);
+    const arm = flat(oscillator, `balance_arm_${i}`, polygon([[0.2, -0.075], [2.87, -0.11], [2.87, 0.11], [0.2, 0.075]]), 0.09, brass, -4.5, 7.1, 0.01, {}, ROLLED);
     arm.rotation.z = i * TAU / 3 + 0.35;
     arm.userData.motion = balanceMotion;
   }
-  hub(oscillator, 'balance_staff_illustration', -4.5, 7.1, 0.24, 0.16, 0.38).userData.motion = balanceMotion;
+  turned(oscillator, 'balance_staff_illustration', turnedProfile(0.16, 0.38, 0.05), steel, -4.5, 7.1, 0.24, 24).userData.motion = balanceMotion;
   const springPoints = [];
   for (let i = 0; i <= 180; i++) {
     const t = i / 180;
@@ -519,20 +656,33 @@ export function createMovement({ width = 18, height = 26, depth = 3 } = {}) {
   balanceSupport.closePath();
   balanceSupport.holes.push(circlePath(-4.5, 7.1, 0.47), circlePath(-6.95, 10, 0.27));
   flat(oscillator, 'balance_support', balanceSupport, 0.2, satin, 0, 0, 0.51);
-  disc(oscillator, 'balance_bearing_surround', 0.64, 0.08, paleBrass, -4.5, 7.1, 0.65, 0.39);
+  // A cock ledge above the staff boss: the balance bearing would sit on the
+  // support, not float over the rim, and the ledge is what makes that readable.
+  turned(oscillator, 'balance_bearing_surround', closed([[0.39, 0.02], [0.64, 0.02], [0.64, 0.08], [0.56, 0.12], [0.39, 0.12]]), paleBrass, -4.5, 7.1, 0.66, 32);
 
   const bearings = subsystem('M090', 'Source-visible bearing accents', 0.96,
-    'Restrained ruby-looking accents and metal surrounds inspired by visible source bearings. These are not an authenticated jewel material, a jewel inventory, or measured bearing positions.', REF.bearing);
+    'Restrained ruby-looking accents in rubbed-in metal settings, inspired by visible source bearings. These are not an authenticated jewel material, a jewel inventory, or measured bearing positions.', REF.bearing);
   for (const [i, x, y, z] of [[0, -4.5, 7.1, 0.24], [1, 3.3, -6.9, -0.15], [2, 4.4, 4.1, -0.12], [3, -2.7, -1.2, -0.08]]) {
-    disc(bearings, `bearing_seat_${i}`, 0.43, 0.07, polished, x, y, z, 0.28);
-    disc(bearings, `ruby_looking_bearing_${i}`, 0.28, 0.085, ruby, x, y, z + 0.015, 0.075);
+    // A chaton: an annulus with a broken outer edge and a countersunk mouth, so
+    // the setting reads as metal rubbed around the stone rather than a washer.
+    turned(bearings, `bearing_seat_${i}`,
+      closed([[0.28, -0.035], [0.43, -0.035], [0.43, 0.025], [0.39, 0.045], [0.33, 0.045], [0.28, 0.02]]),
+      jewelSetting, x, y, z, 32);
+    // The stone is a slightly domed cabochon with a polished top: a flat disc
+    // reads as a red sticker, a dome reads as a jewel in a bearing.
+    turned(bearings, `ruby_looking_bearing_${i}`,
+      [[0, -0.042], [0.28, -0.042], [0.28, 0.005], [0.22, 0.04], [0.12, 0.056], [0, 0.06]],
+      ruby, x, y, z + 0.015, 32);
   }
 
   const fasteners = subsystem('M091', 'Visible-style screw accents', 0.93,
     'A few slotted silver fastener heads inspired by visible source accents. Their number, locations, diameters and slot angles are presentation choices; hidden screws and thread/length specifications are not asserted.', REF.bridge);
   for (const [i, x, y, z] of [[0, -6.85, 0.1, 0], [1, 5.8, 8.5, 0], [2, 6.5, 2.9, 0], [3, -5.9, -9.55, -0.05], [4, -6.95, 10, 0.19], [5, 7.3, -5.15, -0.08]]) {
-    disc(fasteners, `screw_head_${i}`, 0.41, 0.11, polished, x, y, z);
-    const slot = mesh(fasteners, `screw_slot_${i}`, new THREE.BoxGeometry(0.6, 0.065, 0.014), steel, x, y, z + 0.064);
+    // A domed head with a broken edge: a screw head is a turned part, and the
+    // dome plus its slot is what stops it reading as a flat silver dot.
+    turned(fasteners, `screw_head_${i}`,
+      [[0, 0], [0.41, 0], [0.41, 0.05], [0.34, 0.105], [0, 0.11]], polished, x, y, z, 32);
+    const slot = mesh(fasteners, `screw_slot_${i}`, new THREE.BoxGeometry(0.62, 0.062, 0.016), steel, x, y, z + 0.104);
     slot.rotation.z = 0.35 + i * 0.71;
   }
 
