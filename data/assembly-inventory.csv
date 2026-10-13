@@ -1,0 +1,57 @@
+id,name,parent_id,record_type,confirmed_quantity,evidence_status,source_ids,purpose,geometry_status
+W000,watch_root,,logical_group,,project_defined,G01,Complete project,none
+C000,fixed_assembly,W000,logical_group,,project_defined,G01,Cradle and attachment grouping,none
+C001,fixed_cradle,C000,physical_assembly,1,observed_owner,U01,Stationary support,unknown_profile
+C002,upper_lug_end_structure,C000,visible_group,,observed_owner,U01,Upper stationary attachment region,unknown_construction
+C003,lower_lug_end_structure,C000,visible_group,,observed_owner,U01,Lower stationary attachment region,unknown_construction
+C004,slide_pivot_interface,C000,unresolved_assembly,,unknown,S05,Sliding and reversing interface,unknown
+C100,moving_assembly,W000,logical_group,,project_defined,G01,"Case, movement, controls and displays",none
+C101,moving_case_body,C100,physical_assembly,1,observed_owner,U01,Reversible housing,unknown_profile
+C102,upper_gadroons,C101,visible_group,,observed_owner,U01,Top horizontal decorative bands,unknown_cross_section
+C103,lower_gadroons,C101,visible_group,,observed_owner,U01,Bottom horizontal decorative bands,unknown_cross_section
+C104,movement_retention,C100,unresolved_assembly,,unknown,G01,Retains calibre in housing,unknown
+C105,recto_crystal,C100,visible_component,1,observed_owner,U01,Front protective face,unknown_thickness
+C106,reverse_crystal,C100,visible_component,1,observed_supplied_photo,U03,Reverse protective face,unknown_thickness
+C107,sealing_elements,C100,candidate_group,,general_mechanical,G01,Candidate seals or gaskets,unknown
+I001,crown,C100,visible_component,1,observed_owner,U01,Manual winding and setting input,unknown_dimensions
+I002,winding_stem,C100,candidate_component,,general_mechanical,G01,Crown to mechanism connection,unknown
+I003,gmt_pusher,C100,visible_component,1,observed_owner,U01,Rectangular pusher above crown,unknown_stroke
+I004,pusher_linkage,C100,unresolved_assembly,,unknown,S01,Reverse correction input,unknown
+D001,recto_dial,C100,visible_component,1,observed_owner,U01,Silver Arabic dial with seconds register,unknown_dimensions
+D002,recto_hour_hand,C100,visible_component,1,observed_owner,U01,Blue hour hand,unknown_profile_dimensions
+D003,recto_minute_hand,C100,visible_component,1,observed_owner,U01,Blue minute hand,unknown_profile_dimensions
+D004,recto_seconds_hand,C100,visible_component,1,observed_owner,U01,Lower small seconds,unknown_profile_dimensions
+D101,reverse_dial,C100,visible_component,1,observed_supplied_photo,U03,Dark upper time and lower 24-hour registers,unknown_dimensions
+D102,reverse_hour_hand,C100,visible_component,1,observed_supplied_photo,U03,Reverse hour display,unknown_profile_dimensions
+D103,reverse_minute_hand,C100,visible_component,1,observed_supplied_photo,U03,Reverse minute display,unknown_profile_dimensions
+D104,reverse_24h_hand,C100,visible_component,1,observed_supplied_photo,U03,Lower reverse 24-hour indication,unknown_profile_dimensions
+M000,calibre_854_1_module,C100,physical_assembly,1,verified_primary,S01|S07,One manual calibre; educational source-informed display groups,unknown_footprint
+M001,mainplate,M000,candidate_component,,observed_reference_video,S07|G01,Source-informed oblong support illustration; dimensions uncalibrated,unknown
+M002,bridge_supports,M000,candidate_group,,observed_reference_video,S07|G01,Sculpted source-informed support groups; exact profiles unresolved,unknown
+M010,winding_works,M000,functional_group,,observed_reference_video,S07|G01,Visible winding and setting forms; geometry illustrative,unknown
+M011,winding_wheels,M010,candidate_group,,general_mechanical,G01,Exact wheel identities unresolved,unknown
+M012,click_and_spring,M010,candidate_group,,general_mechanical,G01,Candidate winding restraint,unknown
+M020,barrel_assembly,M000,candidate_assembly,,observed_reference_video,S07|G01,Barrel source vocabulary; cover and placement illustrative,unknown
+M021,mainspring,M020,candidate_component,,general_mechanical,G01,Elastic energy storage,unknown
+M022,barrel_arbor,M020,candidate_component,,general_mechanical,G01,Barrel winding axis,unknown
+M030,going_train,M000,functional_group,,observed_reference_video,S07|G01,Spoked wheel source vocabulary; no tooth counts or measured centers,unknown
+M031,train_wheels_pinions,M030,candidate_group,,general_mechanical,G01,Do not assign tooth counts or centers,unknown
+M040,escapement,M000,functional_group,,general_mechanical,G01,Meters energy transfer,unknown
+M041,escape_wheel,M040,candidate_component,,general_mechanical,G01,General escapement component,unknown
+M042,pallet_assembly,M040,candidate_assembly,,general_mechanical,G01,General escapement component,unknown
+M050,oscillator,M000,functional_group,,observed_reference_video,S07|G01,Balance and support appearance; hairspring general-mechanical,unknown
+M051,balance,M050,candidate_component,,general_mechanical,G01,"3-Hz concept, not verified geometry",unknown
+M052,hairspring,M050,candidate_component,,general_mechanical,G01,Balance restoring element,unknown
+M053,balance_support,M050,candidate_component,,general_mechanical,G01,Support shape unresolved,unknown
+M060,recto_display_works,M000,functional_group,,verified_primary,S01,Hours/minutes output; parts unresolved,unknown
+M061,seconds_drive,M000,functional_group,,verified_primary,S01,Lower seconds output; drive path unresolved,unknown
+M070,reverse_display_works,M000,functional_group,,verified_primary,S01,Reverse hours/minutes; physical train unresolved,unknown
+M071,reverse_correction_works,M070,functional_group,,verified_primary,S01,One-hour correction function; coupling unresolved,unknown
+M080,reverse_24h_works,M000,functional_group,,verified_primary,S01,24-hour output; internal geometry unresolved,unknown
+M090,jewels_and_bearings,M000,candidate_group,,observed_reference_video,S07|S02|S03,Source-looking accents not jewel inventory; 21 is calibre-level record,unknown
+M091,movement_fasteners,M000,candidate_group,,observed_reference_video,S07|G01,Illustrative visible-style heads; count and dimensions unverified,unknown
+B000,bracelet_assembly,C000,visible_assembly,1,observed_owner,U01,Metal bracelet follows fixed assembly,unknown
+B001,upper_bracelet_end,B000,visible_group,,observed_owner,U01,Upper connection,unknown
+B002,lower_bracelet_end,B000,visible_group,,observed_owner,U01,Lower connection,unknown
+B003,repeating_link_groups,B000,visible_group,,observed_owner,U01,Count depends on configuration; hidden structure unresolved,unknown
+B004,clasp,B000,unresolved_assembly,,unknown,G01,Underside photos needed,unknown

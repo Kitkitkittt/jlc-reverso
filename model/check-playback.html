@@ -1,0 +1,219 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Playback regression</title>
+<output id="result" data-check="pending">Playback check pending.</output>
+<iframe id="viewer" title="Real model viewer" style="display:block;width:1280px;height:900px;border:0"></iframe>
+<script type="module">
+const result = document.getElementById('result');
+const frame = document.getElementById('viewer');
+const assert = (condition, message) => {
+  if (!condition) throw Object.assign(new Error(message), { name: 'PlaybackAssertion' });
+};
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const finish = (verdict, message) => {
+  result.dataset.check = verdict;
+  result.textContent = message;
+};
+const deadline = setTimeout(() => finish('fail', 'Playback check timed out before completing real animation frames.'), 60000);
+let runtimeError = false;
+window.addEventListener('error', () => { runtimeError = true; });
+window.addEventListener('unhandledrejection', () => { runtimeError = true; });
+frame.addEventListener('load', async () => {
+  try {
+    const win = frame.contentWindow;
+    const doc = frame.contentDocument;
+    win.addEventListener('error', () => { runtimeError = true; });
+    win.addEventListener('unhandledrejection', () => { runtimeError = true; });
+    for (let n = 0; !win.reverso && n < 1000; n++) await sleep(20);
+    const viewer = win.reverso;
+    assert(viewer?.watchRoot?.children.length && viewer.movingNode, 'Initial model was not exposed.');
+    assert(doc.querySelector('canvas') && !viewer.renderer.getContext().isContextLost(), 'Initial model renderer was not available.');
+    const noErrors = () => assert(!runtimeError && !doc.getElementById('errorBody')?.textContent.trim(), 'Model emitted a runtime error.');
+    noErrors();
+    const play = doc.getElementById('playReversalBtn');
+    const slider = doc.getElementById('reversalRange');
+    assert(play && slider, 'Real playback controls were not available.');
+    const pose = () => JSON.stringify([viewer.watchRoot, viewer.movingNode].map(node => [
+      node.position.toArray(), node.quaternion.toArray(), node.scale.toArray(),
+    ]));
+    const advance = async () => {
+      let frames = 0;
+      const rendered = new Promise(resolve => {
+        const tick = () => { if (++frames >= 3) resolve(); else win.requestAnimationFrame(tick); };
+        win.requestAnimationFrame(tick);
+      });
+      await Promise.all([sleep(250), rendered]);
+      noErrors();
+    };
+    // Running calibre: spokes must turn while running and freeze when paused,
+    // without any pivot drift. Exercises the real per-frame loop.
+    const motionPose = () => JSON.stringify(viewer.motionArms.map(arm => arm.node.quaternion.toArray()));
+    assert(viewer.motionArms?.length > 0, 'Running calibre arms were not exposed.');
+    const motionRun = doc.getElementById('motionRunBtn');
+    assert(motionRun, 'Running calibre control was not available.');
+    assert(viewer.state.running === true, 'Running calibre did not start running.');
+    const motionStart = motionPose();
+    await advance();
+    assert(motionPose() !== motionStart, 'Running calibre spokes did not turn while running.');
+    motionRun.click();
+    assert(viewer.state.running === false, 'Running calibre control did not pause the movement.');
+    const frozen = motionPose();
+    await advance();
+    assert(motionPose() === frozen, 'Running calibre spokes kept turning while paused.');
+    motionRun.click();
+    assert(viewer.state.running === true, 'Running calibre control did not resume the movement.');
+    await advance();
+    assert(motionPose() !== frozen, 'Running calibre spokes did not resume after pausing.');
+    // Speed changes must not rescale the train phase that has already run. While
+    // paused, drive the real speed control and then force re-applies through
+    // setTime and the GMT pusher: every spoke quaternion must stay identical, and
+    // the accumulated train phase must not be rewritten by the new factor.
+    const speedSelect = doc.getElementById('speedSelect');
+    assert(speedSelect, 'Run speed control was not available.');
+    motionRun.click();
+    assert(viewer.state.running === false, 'Running calibre control did not pause for the speed check.');
+    const pausedPose = motionPose();
+    const pausedTrain = viewer.state.motionPhase.trainElapsedSeconds;
+    assert(pausedTrain > 0, 'Running calibre had not accumulated a train phase to preserve.');
+    const changeSpeedWhilePaused = value => {
+      speedSelect.value = String(value);
+      speedSelect.dispatchEvent(new win.Event('change', { bubbles: true }));
+      assert(motionPose() === pausedPose, `Speed ${value}x moved the spokes while paused.`);
+      assert(viewer.state.motionPhase.trainElapsedSeconds === pausedTrain, `Speed ${value}x rescaled the accumulated train phase.`);
+      viewer.setTime(viewer.state.seconds + 90);
+      assert(motionPose() === pausedPose, `Setting the time after ${value}x moved the spokes.`);
+      viewer.pressPusher();
+      assert(motionPose() === pausedPose, `GMT correction after ${value}x moved the spokes.`);
+    };
+    changeSpeedWhilePaused(60);
+    changeSpeedWhilePaused(1);
+    motionRun.click();
+    assert(viewer.state.running === true, 'Running calibre control did not resume after the speed check.');
+    await advance();
+    assert(motionPose() !== pausedPose, 'Running calibre spokes did not continue after the paused speed change.');
+    const pausedAt = progress => {
+      assert(viewer.reversalPlaying === false && play.getAttribute('aria-pressed') === 'false', 'Scrubbing did not pause playback.');
+      assert(Math.abs(viewer.state.reversal - progress) < 1e-9 && Number(slider.value) === progress, 'Scrubbing did not retain the requested progress.');
+    };
+    const scrubAndHold = async progress => {
+      slider.value = String(progress);
+      slider.dispatchEvent(new win.Event('input', { bubbles: true }));
+      pausedAt(progress);
+      const heldPose = pose();
+      await advance();
+      pausedAt(progress);
+      assert(pose() === heldPose, 'Reversal transforms changed while paused.');
+    };
+    assert(viewer.state.reversal === 0 && viewer.reversalPlaying === false, 'Initial playback state was not seated and paused.');
+    play.click();
+    assert(viewer.reversalPlaying === true, 'Play button did not start playback.');
+    await advance();
+    assert(viewer.state.reversal > 0, 'Real animation frames did not advance playback.');
+    slider.focus();
+    assert(doc.activeElement === slider, 'Slider did not receive focus.');
+    await scrubAndHold(0.42);
+    play.click();
+    assert(viewer.reversalPlaying === true && viewer.state.reversal >= 0.42, 'Resume restarted playback instead of retaining progress.');
+    await advance();
+    assert(viewer.state.reversal > 0.42 && viewer.state.reversal < 0.9, 'Resume did not advance beyond the scrubbed position.');
+    slider.blur();
+    assert(doc.activeElement !== slider, 'Slider remained focused for programmatic input.');
+    await scrubAndHold(0.61);
+    viewer.setView('recto');
+    const assemblyPlay = doc.getElementById('playAssemblyBtn');
+    const assemblySlider = doc.getElementById('assemblyRange');
+    const next = doc.getElementById('nextAssemblyBtn');
+    const previous = doc.getElementById('previousAssemblyBtn');
+    const recto = doc.querySelector('[data-view="recto"]');
+    const movement = viewer.watchRoot.getObjectByName('M000');
+    const cradle = viewer.watchRoot.getObjectByName('C000');
+    const crystals = ['C105', 'C106'].map(id => viewer.watchRoot.getObjectByName(id));
+    const bracelet = viewer.watchRoot.getObjectByName('B000');
+    assert(assemblyPlay && assemblySlider && next && previous && recto && movement?.children.length && cradle && crystals.every(Boolean) && bracelet, 'Assembly controls or model groups were not available.');
+    const transforms = nodes => JSON.stringify(nodes.map(node => [node.position.toArray(), node.quaternion.toArray(), node.scale.toArray()]));
+    const visible = node => {
+      for (let parent = node; parent; parent = parent.parent) if (!parent.visible) return false;
+      return true;
+    };
+    const assemblyPose = () => transforms(movement.children);
+    const assembledPose = assemblyPose();
+    const fixedPose = transforms([cradle]);
+    const clock = { seconds: viewer.state.seconds, running: viewer.state.running, offset: viewer.state.offsetHours };
+    const crystalToggle = doc.getElementById('crystalToggle');
+    const braceletToggle = doc.getElementById('braceletToggle');
+    assert(crystalToggle && braceletToggle, 'Visibility controls were not available.');
+    crystalToggle.checked = false;
+    crystalToggle.dispatchEvent(new win.Event('change', { bubbles: true }));
+    braceletToggle.checked = true;
+    braceletToggle.dispatchEvent(new win.Event('change', { bubbles: true }));
+    viewer.setView('calibre-exploded');
+    assert(!visible(cradle) && !visible(bracelet) && crystals.every(node => !visible(node)) && visible(movement), 'Calibre focus did not isolate the movement.');
+    assert(viewer.state.reversal === 0 && viewer.state.explosion === 0 && !viewer.reversalPlaying, 'Calibre focus retained exterior presentation playback.');
+    const separatedPose = assemblyPose();
+    assert(separatedPose !== assembledPose && viewer.state.assembly === 0, 'Calibre exploded view did not separate movement groups.');
+    const assemblyPausedAt = progress => {
+      assert(viewer.state.assemblyPlaying === false && assemblyPlay.getAttribute('aria-pressed') === 'false', 'Assembly playback did not pause at the requested progress.');
+      assert(Math.abs(viewer.state.assembly - progress) < 1e-9 && Number(assemblySlider.value) === progress, 'Assembly controls did not retain the requested progress.');
+      assert(transforms([cradle]) === fixedPose && viewer.state.reversal === 0 && viewer.state.explosion === 0, 'Assembly changed the fixed cradle or exterior presentation state.');
+    };
+    const assemblyScrubAndHold = async () => {
+      assemblySlider.value = '0.42';
+      assemblySlider.dispatchEvent(new win.Event('input', { bubbles: true }));
+      assemblyPausedAt(0.42);
+      const heldPose = assemblyPose();
+      await advance();
+      assemblyPausedAt(0.42);
+      assert(assemblyPose() === heldPose, 'Movement group transforms changed while assembly was paused.');
+    };
+    assemblyPlay.click();
+    assert(viewer.state.assemblyPlaying === true && assemblyPlay.getAttribute('aria-pressed') === 'true', 'Assembly play button did not start playback.');
+    await advance();
+    assert(viewer.state.assembly > 0 && assemblyPose() !== separatedPose, 'Real animation frames did not advance assembly group transforms.');
+    assemblySlider.focus();
+    assert(doc.activeElement === assemblySlider, 'Assembly slider did not receive focus.');
+    await assemblyScrubAndHold();
+    const scrubbedPose = assemblyPose();
+    assemblyPlay.click();
+    assert(viewer.state.assemblyPlaying === true && viewer.state.assembly >= 0.42, 'Assembly resume restarted instead of retaining progress.');
+    await advance();
+    assert(viewer.state.assembly > 0.42 && viewer.state.assembly < 0.9 && assemblyPose() !== scrubbedPose, 'Assembly resume did not advance beyond the scrubbed pose.');
+    assemblySlider.blur();
+    assert(doc.activeElement !== assemblySlider, 'Assembly slider remained focused for programmatic input.');
+    await assemblyScrubAndHold();
+    next.click();
+    assemblyPausedAt(0.46);
+    assert(assemblyPose() !== scrubbedPose, 'Next assembly stage did not change movement group transforms.');
+    previous.click();
+    assemblyPausedAt(0.34);
+    assert(assemblyPose() !== scrubbedPose, 'Previous assembly stage did not change movement group transforms.');
+    viewer.setAssembly(0.999);
+    assemblyPlay.click();
+    await advance();
+    assemblyPausedAt(1);
+    assert(assemblyPose() === assembledPose && next.disabled, 'Assembly completion did not seat every movement group and stop at the endpoint.');
+    viewer.setAssembly(0.42);
+    assemblyPlay.click();
+    recto.click();
+    assemblyPausedAt(1);
+    assert(viewer.state.view === 'recto' && assemblyPose() === assembledPose && viewer.state.movementExplosion === 0, 'Named recto view did not reset assembly playback and group transforms.');
+    assert(cradle.visible && bracelet.visible && crystals.every(node => !node.visible) && !crystalToggle.checked && braceletToggle.checked, 'Leaving calibre focus did not restore user crystal and bracelet visibility.');
+    viewer.setView('calibre-exploded');
+    viewer.setReversal(0.42);
+    assert(viewer.state.view === 'oblique' && viewer.state.reversal === 0.42 && viewer.state.explosion === 0 && assemblyPose() === assembledPose && transforms([cradle]) === fixedPose, 'Reversal did not leave calibre focus with assembled movement groups and a fixed cradle.');
+    viewer.setView('calibre-exploded');
+    viewer.setExplosion(0.6);
+    assert(viewer.state.view === 'exploded' && viewer.state.explosion === 0.6 && viewer.state.reversal === 0 && !viewer.state.assemblyPlaying && transforms([cradle]) === fixedPose, 'Exterior explosion did not leave calibre focus independently of assembly with a fixed cradle.');
+    recto.click();
+    assert(transforms([cradle]) === fixedPose, 'Fixed cradle transforms changed during assembly, reversal or explosion.');
+    assert(viewer.state.running === clock.running && viewer.state.offsetHours === clock.offset && viewer.state.seconds > clock.seconds, 'Assembly presentation changed or stopped the existing clock.');
+    noErrors();
+    clearTimeout(deadline);
+    if (result.dataset.check === 'pending') finish('pass', 'Reversal and calibre assembly playback, scrub holds, resume, stages, completion and recto reset passed.');
+  } catch (error) {
+    clearTimeout(deadline);
+    // Return only our assertion messages, never browser stacks or resource paths.
+    finish('fail', error?.name === 'PlaybackAssertion' ? error.message : 'Playback check encountered an unexpected runtime error.');
+  }
+}, { once: true });
+frame.src = './index.html';
+</script>

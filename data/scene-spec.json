@@ -1,0 +1,734 @@
+{
+  "schema_version": "1.0",
+  "reference": "Q2718110",
+  "calibre": "854/1",
+  "authoring_units": "mm",
+  "gltf_units": "m",
+  "mm_to_m": 0.001,
+  "coordinate_frame": {
+    "x": "recto right toward crown",
+    "y": "toward 12",
+    "z": "out through recto crystal",
+    "origin": "project cradle-center datum"
+  },
+  "reference_constraints": {
+    "recto_numerals": "Arabic",
+    "recto_dial_color": "silver",
+    "recto_hands_color": "blue",
+    "recto_lower_display": "small_seconds",
+    "gmt_pusher_form": "rectangular_side_pusher",
+    "gmt_pusher_position_recto": "above_crown_right",
+    "controls_reverse": "left_pusher_above_crown",
+    "reverse_dial_color": "dark",
+    "reverse_lower_display": "24_hour",
+    "automatic_rotor": false,
+    "manual_movement_count": 1
+  },
+  "physical_unknowns": {
+    "reversal_axis_point_mm": null,
+    "release_slide_mm": null,
+    "crown_axis_in_calibre_frame": null,
+    "pusher_stroke_mm": null,
+    "reverse_24h_zero_angle_degrees": null
+  },
+  "behavior": {
+    "reverse_gmt_increment_hours": 1,
+    "reverse_offset_modulus_hours": 24,
+    "minutes_linked": true,
+    "recto_small_seconds_period_s": 60,
+    "reverse_indicator_period_s": 86400,
+    "case_reversal_angle_deg": 180,
+    "case_reversal_axis_direction": [
+      0,
+      1,
+      0
+    ],
+    "case_axis_location_status": "unknown"
+  },
+  "nodes": [
+    {
+      "id": "W000",
+      "name": "watch_root",
+      "parent": null,
+      "type": "logical_group",
+      "geometry_status": "none",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "C000",
+      "name": "fixed_assembly",
+      "parent": "W000",
+      "type": "logical_group",
+      "geometry_status": "none",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "C001",
+      "name": "fixed_cradle",
+      "parent": "C000",
+      "type": "physical_assembly",
+      "geometry_status": "unknown_profile",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "C002",
+      "name": "upper_lug_end_structure",
+      "parent": "C000",
+      "type": "visible_group",
+      "geometry_status": "unknown_construction",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "C003",
+      "name": "lower_lug_end_structure",
+      "parent": "C000",
+      "type": "visible_group",
+      "geometry_status": "unknown_construction",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "C004",
+      "name": "slide_pivot_interface",
+      "parent": "C000",
+      "type": "unresolved_assembly",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "S05"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "C100",
+      "name": "moving_assembly",
+      "parent": "W000",
+      "type": "logical_group",
+      "geometry_status": "none",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "C101",
+      "name": "moving_case_body",
+      "parent": "C100",
+      "type": "physical_assembly",
+      "geometry_status": "unknown_profile",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "C102",
+      "name": "upper_gadroons",
+      "parent": "C101",
+      "type": "visible_group",
+      "geometry_status": "unknown_cross_section",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "C103",
+      "name": "lower_gadroons",
+      "parent": "C101",
+      "type": "visible_group",
+      "geometry_status": "unknown_cross_section",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "C104",
+      "name": "movement_retention",
+      "parent": "C100",
+      "type": "unresolved_assembly",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "C105",
+      "name": "recto_crystal",
+      "parent": "C100",
+      "type": "visible_component",
+      "geometry_status": "unknown_thickness",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "C106",
+      "name": "reverse_crystal",
+      "parent": "C100",
+      "type": "visible_component",
+      "geometry_status": "unknown_thickness",
+      "source_ids": [
+        "U03"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "C107",
+      "name": "sealing_elements",
+      "parent": "C100",
+      "type": "candidate_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "I001",
+      "name": "crown",
+      "parent": "C100",
+      "type": "visible_component",
+      "geometry_status": "unknown_dimensions",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "I002",
+      "name": "winding_stem",
+      "parent": "C100",
+      "type": "candidate_component",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "I003",
+      "name": "gmt_pusher",
+      "parent": "C100",
+      "type": "visible_component",
+      "geometry_status": "unknown_stroke",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "I004",
+      "name": "pusher_linkage",
+      "parent": "C100",
+      "type": "unresolved_assembly",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "S01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "D001",
+      "name": "recto_dial",
+      "parent": "C100",
+      "type": "visible_component",
+      "geometry_status": "unknown_dimensions",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "D002",
+      "name": "recto_hour_hand",
+      "parent": "C100",
+      "type": "visible_component",
+      "geometry_status": "unknown_profile_dimensions",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "D003",
+      "name": "recto_minute_hand",
+      "parent": "C100",
+      "type": "visible_component",
+      "geometry_status": "unknown_profile_dimensions",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "D004",
+      "name": "recto_seconds_hand",
+      "parent": "C100",
+      "type": "visible_component",
+      "geometry_status": "unknown_profile_dimensions",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "D101",
+      "name": "reverse_dial",
+      "parent": "C100",
+      "type": "visible_component",
+      "geometry_status": "unknown_dimensions",
+      "source_ids": [
+        "U03"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "D102",
+      "name": "reverse_hour_hand",
+      "parent": "C100",
+      "type": "visible_component",
+      "geometry_status": "unknown_profile_dimensions",
+      "source_ids": [
+        "U03"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "D103",
+      "name": "reverse_minute_hand",
+      "parent": "C100",
+      "type": "visible_component",
+      "geometry_status": "unknown_profile_dimensions",
+      "source_ids": [
+        "U03"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "D104",
+      "name": "reverse_24h_hand",
+      "parent": "C100",
+      "type": "visible_component",
+      "geometry_status": "unknown_profile_dimensions",
+      "source_ids": [
+        "U03"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M000",
+      "name": "calibre_854_1_module",
+      "parent": "C100",
+      "type": "physical_assembly",
+      "geometry_status": "unknown_footprint",
+      "source_ids": [
+        "S01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M001",
+      "name": "mainplate",
+      "parent": "M000",
+      "type": "candidate_component",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M002",
+      "name": "bridge_supports",
+      "parent": "M000",
+      "type": "candidate_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M010",
+      "name": "winding_works",
+      "parent": "M000",
+      "type": "functional_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M011",
+      "name": "winding_wheels",
+      "parent": "M010",
+      "type": "candidate_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M012",
+      "name": "click_and_spring",
+      "parent": "M010",
+      "type": "candidate_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M020",
+      "name": "barrel_assembly",
+      "parent": "M000",
+      "type": "candidate_assembly",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M021",
+      "name": "mainspring",
+      "parent": "M020",
+      "type": "candidate_component",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M022",
+      "name": "barrel_arbor",
+      "parent": "M020",
+      "type": "candidate_component",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M030",
+      "name": "going_train",
+      "parent": "M000",
+      "type": "functional_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M031",
+      "name": "train_wheels_pinions",
+      "parent": "M030",
+      "type": "candidate_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M040",
+      "name": "escapement",
+      "parent": "M000",
+      "type": "functional_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M041",
+      "name": "escape_wheel",
+      "parent": "M040",
+      "type": "candidate_component",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M042",
+      "name": "pallet_assembly",
+      "parent": "M040",
+      "type": "candidate_assembly",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M050",
+      "name": "oscillator",
+      "parent": "M000",
+      "type": "functional_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M051",
+      "name": "balance",
+      "parent": "M050",
+      "type": "candidate_component",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M052",
+      "name": "hairspring",
+      "parent": "M050",
+      "type": "candidate_component",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M053",
+      "name": "balance_support",
+      "parent": "M050",
+      "type": "candidate_component",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M060",
+      "name": "recto_display_works",
+      "parent": "M000",
+      "type": "functional_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "S01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M061",
+      "name": "seconds_drive",
+      "parent": "M000",
+      "type": "functional_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "S01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M070",
+      "name": "reverse_display_works",
+      "parent": "M000",
+      "type": "functional_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "S01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M071",
+      "name": "reverse_correction_works",
+      "parent": "M070",
+      "type": "functional_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "S01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M080",
+      "name": "reverse_24h_works",
+      "parent": "M000",
+      "type": "functional_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "S01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M090",
+      "name": "jewels_and_bearings",
+      "parent": "M000",
+      "type": "candidate_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "S02",
+        "S03"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "M091",
+      "name": "movement_fasteners",
+      "parent": "M000",
+      "type": "candidate_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "B000",
+      "name": "bracelet_assembly",
+      "parent": "C000",
+      "type": "visible_assembly",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "B001",
+      "name": "upper_bracelet_end",
+      "parent": "B000",
+      "type": "visible_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "B002",
+      "name": "lower_bracelet_end",
+      "parent": "B000",
+      "type": "visible_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "B003",
+      "name": "repeating_link_groups",
+      "parent": "B000",
+      "type": "visible_group",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "U01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    },
+    {
+      "id": "B004",
+      "name": "clasp",
+      "parent": "B000",
+      "type": "unresolved_assembly",
+      "geometry_status": "unknown",
+      "source_ids": [
+        "G01"
+      ],
+      "physical_transform": null,
+      "physical_dimensions_mm": null
+    }
+  ],
+  "presentation_policy": {
+    "explode_offset_is_physical_dimension": false,
+    "exploded_offsets": null,
+    "illustrative_geometry_requires_label": true,
+    "exact_part_reconstruction_available": false,
+    "movement_geometry": "source_informed_illustrative",
+    "movement_reference_source_ids": ["S07", "S09"],
+    "movement_source_identity": "title_attributed_854_1_engraving_unconfirmed",
+    "movement_display_transfer": "schematic_not_observed_physical_train",
+    "assembly_sequence": "educational_not_workshop_order"
+  }
+}

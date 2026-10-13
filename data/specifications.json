@@ -1,0 +1,223 @@
+{
+  "schema_version": "1.0",
+  "research_date": "2026-10-12",
+  "reference": "Q2718110",
+  "catalogue_reference": "271 81 10",
+  "calibre": "854/1",
+  "target_scope": "Owner photographed exterior; historical calibre specifications; educational exploded assembly",
+  "evidence": {
+    "case_material": {
+      "value": "stainless steel",
+      "unit": null,
+      "status": "verified_primary",
+      "sources": [
+        "S01"
+      ],
+      "scope": "historical_reference",
+      "notes": ""
+    },
+    "overall_case_length": {
+      "value": 42.2,
+      "unit": "mm",
+      "status": "verified_primary",
+      "sources": [
+        "S01"
+      ],
+      "scope": "catalogue_case_envelope",
+      "notes": "Boundary convention is not a dimensioned CAD datum."
+    },
+    "overall_case_width": {
+      "value": 26,
+      "unit": "mm",
+      "status": "verified_primary",
+      "sources": [
+        "S01"
+      ],
+      "scope": "catalogue_case_envelope",
+      "notes": "Not movement width."
+    },
+    "winding": {
+      "value": "manual",
+      "unit": null,
+      "status": "verified_primary",
+      "sources": [
+        "S01"
+      ],
+      "scope": "historical_calibre",
+      "notes": ""
+    },
+    "nominal_power_reserve": {
+      "value": 45,
+      "unit": "h",
+      "status": "verified_primary",
+      "sources": [
+        "S01"
+      ],
+      "scope": "historical_calibre",
+      "notes": "Not measured on owner's specimen."
+    },
+    "published_components": {
+      "value": 180,
+      "unit": "components",
+      "status": "verified_primary",
+      "sources": [
+        "S01"
+      ],
+      "scope": "historical_calibre",
+      "notes": "Not inventory row or mesh count."
+    },
+    "vibration_rate": {
+      "value": 21600,
+      "unit": "vibrations/h",
+      "status": "verified_primary",
+      "sources": [
+        "S01"
+      ],
+      "scope": "historical_calibre",
+      "notes": ""
+    },
+    "balance_frequency": {
+      "value": 3,
+      "unit": "Hz",
+      "status": "derived",
+      "sources": [
+        "S01"
+      ],
+      "scope": "historical_calibre",
+      "notes": "21600 / 3600 / 2"
+    },
+    "jewels": {
+      "value": 21,
+      "unit": "jewels",
+      "status": "verified_primary",
+      "sources": [
+        "S02",
+        "S03"
+      ],
+      "scope": "same_calibre_other_specimens",
+      "notes": "Owner's movement has not been opened."
+    },
+    "original_water_resistance": {
+      "value": 3,
+      "unit": "bar",
+      "status": "verified_primary",
+      "sources": [
+        "S01"
+      ],
+      "scope": "historical_reference",
+      "notes": "Not a present-condition pressure test."
+    },
+    "gmt_increment": {
+      "value": 1,
+      "unit": "h per press",
+      "status": "verified_primary",
+      "sources": [
+        "S01"
+      ],
+      "scope": "historical_reference",
+      "notes": "Forward one-hour correction."
+    },
+    "recto_dial": {
+      "value": "silver; black Arabic numerals; blue hands; circular lower seconds",
+      "unit": null,
+      "status": "observed_owner",
+      "sources": [
+        "U01",
+        "U02"
+      ],
+      "scope": "visible_exterior",
+      "notes": ""
+    },
+    "reverse_dial": {
+      "value": "dark; upper circular time display; lower 24-hour indicator",
+      "unit": null,
+      "status": "observed_supplied_photo",
+      "sources": [
+        "U03"
+      ],
+      "scope": "visible_exterior",
+      "notes": ""
+    },
+    "gmt_control_recto": {
+      "value": "rectangular side pusher above crown on right",
+      "unit": null,
+      "status": "observed_owner",
+      "sources": [
+        "U01"
+      ],
+      "scope": "visible_exterior",
+      "notes": ""
+    },
+    "controls_reverse": {
+      "value": "left; pusher toward 12 relative to crown",
+      "unit": null,
+      "status": "observed_supplied_photo",
+      "sources": [
+        "U03"
+      ],
+      "scope": "visible_exterior",
+      "notes": ""
+    },
+    "crystal_material": {
+      "value": "sapphire",
+      "unit": null,
+      "status": "reported_unconfirmed",
+      "sources": [
+        "S08"
+      ],
+      "scope": "reference_specimen_report",
+      "notes": "Owner's crystal not independently tested."
+    },
+    "case_thickness_report": {
+      "value": 9.3,
+      "unit": "mm",
+      "status": "reported_unconfirmed",
+      "sources": [
+        "S06"
+      ],
+      "scope": "other_Q2718110_specimen",
+      "notes": "Not used as a verified physical dimension."
+    },
+    "lug_opening_report": {
+      "value": 19,
+      "unit": "mm",
+      "status": "reported_unconfirmed",
+      "sources": [
+        "S06"
+      ],
+      "scope": "other_Q2718110_specimen",
+      "notes": "Other reports disagree; owner's dimension unresolved."
+    }
+  },
+  "physical_geometry_mm": {
+    "movement_length": null,
+    "movement_width": null,
+    "movement_thickness": null,
+    "moving_case_length": null,
+    "moving_case_width": null,
+    "exact_case_thickness": null,
+    "dial_aperture_recto_width": null,
+    "dial_aperture_recto_height": null,
+    "dial_aperture_reverse_width": null,
+    "dial_aperture_reverse_height": null,
+    "crown_diameter": null,
+    "crown_center": null,
+    "pusher_dimensions": null,
+    "pusher_center": null,
+    "pusher_stroke": null,
+    "crystal_thickness_recto": null,
+    "crystal_thickness_reverse": null,
+    "slide_stroke": null,
+    "pivot_axis_offset": null,
+    "bracelet_attachment_opening": null
+  },
+  "exclusions": [
+    "current_Tribute_hidden_top_slider",
+    "current_854_42h_reserve",
+    "baton_marker_recto",
+    "automatic_rotor",
+    "date_display",
+    "invented_OEM_part_numbers"
+  ],
+  "source_registry": "sources.json"
+}

@@ -1,0 +1,29 @@
+claim_id,statement,status,source_ids,scope,limitations
+CL001,Commercial reference Q2718110 / 271 81 10,verified_primary,S01,historical_reference,Reference index; not a serial
+CL002,Nominal catalogue case size 42.2 by 26 mm,verified_primary,S01,catalogue_envelope,Does not give central moving-case or movement dimensions
+CL003,Stainless steel variant,verified_primary,S01,historical_reference,Exact alloy unconfirmed
+CL004,Calibre 854/1 assigned to historical Reverso Duo,verified_primary,S01,historical_calibre,Owner's movement not directly inspected
+CL005,Manual winding,verified_primary,S01,historical_calibre,Exclude automatic rotor
+CL006,180 published components,verified_primary,S01,historical_calibre,Do not sum conceptual inventory rows
+CL007,45-hour nominal power reserve,verified_primary,S01,historical_calibre,Not owner measured reserve
+CL008,21600 vibrations per hour,verified_primary,S01,historical_calibre,No amplitude assumption
+CL009,3 Hz balance frequency,derived,S01,historical_calibre,21600/3600/2
+CL010,21 jewels,verified_primary,S02|S03,same_calibre_other_specimens,Individual jewel locations unresolved
+CL011,Original 3-bar water resistance,verified_primary,S01,historical_reference,Not current pressure-test result
+CL012,Forward one-hour reverse correction per press,verified_primary,S01,historical_reference,Not modern slider geometry
+CL013,Recto black Arabic numerals and blue hands,observed_owner,U01,visible_exterior,Photo controls appearance
+CL014,Circular recto seconds scale at lower 6 region,observed_owner,U01|U02,visible_exterior,Do not substitute central seconds
+CL015,Rectangular pusher above crown on recto right,observed_owner,U01,visible_exterior,Toward 12; dimensions unknown
+CL016,Dark reverse upper time circle and lower 24-hour circle,observed_supplied_photo,U03,visible_exterior,Fine track typography provisional
+CL017,"Reverse controls appear left, pusher remains toward 12",observed_supplied_photo,U03,visible_exterior,Not mirror lettering
+CL018,Metal articulated bracelet,observed_owner,U01,visible_exterior,Hidden attachment and clasp unresolved
+CL019,Case thickness reported as 9.3 mm,reported_unconfirmed,S06,other_Q2718110_specimen,Not owner's measurement
+CL020,Lug opening reported as 19 mm,reported_unconfirmed,S06,other_Q2718110_specimen,Conflicting reports; geometry unset
+CL021,Movement footprint and physical thickness,unknown,G01,internal_geometry,All remain null
+CL022,Current official 854 manual uses 42-hour reserve and top slider,verified_primary,S04,different_variant,Exclusion and comparison only
+CL023,Teardown footage title identifies Cal.854-1,reported_unconfirmed,S07,title_attributed_video,Selected frames reviewed; exact engraving and geometry unresolved; calibre identity unconfirmed
+CL024,Barrel-to-train-to-escapement explanation,general_mechanical,G01,general_mechanical,Not exact 854/1 pivot topology
+CL025,Half-turn around Y changes right-side controls to left,derived,U01|U03,orientation_model,Exact pivot position unknown
+CL026,Reverse minutes remain linked in display simulation,derived,S01|S04,functional_model,Physical reverse drive not reconstructed
+CL027,Reverse zero angle on 24-hour track,unknown,U03,fine_dial_detail,Sharp reference required
+CL028,"Exact service sequence, lubrication, screws, gears",unknown,G01,internal_geometry,No authenticated factory guide recovered
