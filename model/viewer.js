@@ -888,6 +888,17 @@ class ReversoViewer {
 
     // Keyboard: space toggles run, arrows step time, P presses the pusher.
     window.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        this.setPanelOpen(false);
+        this.clearSelection();
+        return;
+      }
+      if (event.key === 'Tab' && $('panel').dataset.collapsed === 'false' && window.matchMedia('(max-width: 900px)').matches) {
+        const controls = [...$('panel').querySelectorAll('button, input, select, summary, a[href]')].filter(el => !el.disabled && el.getClientRects().length);
+        const first = controls[0], last = controls.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
       if (event.target instanceof HTMLElement && event.target.closest('input, select, button, textarea, a, [contenteditable]')) return;
       if (event.code === 'Space') { event.preventDefault(); this.toggleRun(); }
       else if (event.key === 'ArrowRight') { event.preventDefault(); this.setTime(this.state.seconds + (event.shiftKey ? 3600 : 60)); }
@@ -895,7 +906,6 @@ class ReversoViewer {
       else if (event.key === 'p' || event.key === 'P') { this.pressPusher(); }
       else if (event.key === 'f' || event.key === 'F') { this.toggleReversalPlay(); }
       else if (event.key === 'l' || event.key === 'L') { $('labelsToggle').click(); }
-      else if (event.key === 'Escape') { this.clearSelection(); }
     });
   }
 
@@ -946,6 +956,10 @@ class ReversoViewer {
     const panel = $('panel');
     panel.dataset.collapsed = String(!open);
     $('panelToggle').setAttribute('aria-expanded', String(!!open));
+    const mobile = window.matchMedia('(max-width: 900px)').matches;
+    for (const element of [document.querySelector('header'), $('controls'), $('selectionCard')]) element.inert = !!open && mobile;
+    if (open && mobile) $('panelClose').focus();
+    else if (!open && panel.contains(document.activeElement)) $('panelToggle').focus();
     // The uncovered region changed, so re-fit and re-clamp the overlay.
     if (!this._userMovedCamera) this._frameCamera(this.state.view);
     this._syncOverlayBounds();
