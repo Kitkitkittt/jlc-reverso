@@ -252,6 +252,14 @@ class ReversoViewer {
     this.focusVisibility = null;
     this.focusBounds = null;
 
+    // Responsive-panel and export bookkeeping.
+    this._panelOpen = false;            // Inspector open, for focus transitions
+    this._panelInert = false;           // background currently inert
+    this._captureIgnore = null;         // UI overlays left out of a capture's framing
+    this._isCapturing = false;          // one PNG capture at a time
+    this._pickTapFlag = null;           // framing flag as it was before a pick
+    this._pickSkip = null;              // crystal-face meshes picked over (lazy)
+
     this.selection = null;         // selected part id
     this.selectionNodes = [];      // every node tagged with that id
     this.selectionShells = [];     // { shell, source }
@@ -864,6 +872,10 @@ class ReversoViewer {
         if (moved > 5 || elapsed > 700) return; // that was an orbit or a pan
       } else if (moved > 12 || elapsed > 700) return; // that was a touch drag
       const id = this.pickAt(event.clientX, event.clientY);
+      // The tap is over, so OrbitControls hover damping has already nudged the
+      // camera. Restore the pre-tap framing flag first, or the card-aware refit
+      // would read this stationary pick as a camera gesture and skip.
+      this._userMovedCamera = this._pickTapFlag === true;
       if (id) this.selectPart(id);
       else this.clearSelection();
     });
@@ -942,8 +954,13 @@ class ReversoViewer {
       if (mechanism && !this._isCalibreView()) this.setView(MODE_VIEWS.mechanism);
       else if (mode === 'watch' && this._isCalibreView()) this.setView(MODE_VIEWS.watch);
       else if (!this._userMovedCamera) this._frameCamera(this.state.view);
-      if (sources) this._syncOverlayBounds();
     }
+    // A mode switch changes which dock rows are visible, so the label overlay
+    // and the card's dock-relative offset are re-measured. The new rows are
+    // only measurable once the dock has been laid out, hence the next frame —
+    // the immediate pass keeps the synchronous contract callers rely on.
+    this._syncOverlayBounds();
+    requestAnimationFrame(() => { if (this.state.mode === mode) this._syncOverlayBounds(); });
     return mode;
   }
 
@@ -956,14 +973,37 @@ class ReversoViewer {
     const panel = $('panel');
     panel.dataset.collapsed = String(!open);
     $('panelToggle').setAttribute('aria-expanded', String(!!open));
-    const mobile = window.matchMedia('(max-width: 900px)').matches;
-    for (const element of [document.querySelector('header'), $('controls'), $('selectionCard')]) element.inert = !!open && mobile;
-    if (open && mobile) $('panelClose').focus();
-    else if (!open && panel.contains(document.activeElement)) $('panelToggle').focus();
+    this._syncPanelInert();
     // The uncovered region changed, so re-fit and re-clamp the overlay.
     if (!this._userMovedCamera) this._frameCamera(this.state.view);
     this._syncOverlayBounds();
     return !!open;
+  }
+
+  /**
+   * Apply the mobile Inspector's inertness and focus for the current
+   * breakpoint. Re-derived on every resize, because a resize can cross 900px
+   * with the panel open: the full-screen drawer would otherwise leave the
+   * desktop background inert while its Close button is hidden, and the desktop
+   * Inspector toggle lives inside those inert controls.
+   */
+  _syncPanelInert() {
+    const panel = $('panel');
+    const open = panel.dataset.collapsed === 'false';
+    const mobile = window.matchMedia('(max-width: 900px)').matches;
+    const inert = open && mobile;
+    const wasInert = this._panelInert === true;
+    const wasOpen = this._panelOpen === true;
+    this._panelInert = inert;
+    this._panelOpen = open;
+    for (const element of [document.querySelector('header'), $('controls'), $('selectionCard')]) {
+      if (element) element.inert = inert;
+    }
+    // Focus only follows a real transition, so an ordinary desktop interaction
+    // (or a resize that keeps the same state) never steals it from a control.
+    if (inert && !wasInert) { $('panelClose').focus(); return; }
+    if (!inert && wasInert) { if (panel.contains(document.activeElement)) $('panelToggle').focus(); return; }
+    if (!open && wasOpen && panel.contains(document.activeElement)) $('panelToggle').focus();
   }
 
   setControlsOpen(open, { silent = false } = {}) {
@@ -982,6 +1022,10 @@ class ReversoViewer {
    * `card.hidden` directly.
    */
   _setCardVisible(visible) {
+    // Snapshot the framing flag before anything can re-frame, so a stationary
+    // tap can put it back after the pick: OrbitControls reports `start` on
+    // pointer-down and its own hover damping settles after pointer-up.
+    this._pickTapFlag = this._userMovedCamera;
     const card = $('selectionCard');
     if (!card || card.hidden === !visible) return;
     card.hidden = !visible;
@@ -1002,8 +1046,19 @@ class ReversoViewer {
       -((clientY - rect.top) / rect.height) * 2 + 1,
     );
     this.raycaster.setFromCamera(ndc, this.camera);
+    // The crystals are optically clear but geometrically solid, so a raycast
+    // against their faces would swallow every click on the hands and dial
+    // behind them. They stay selectable from the part list, which names the id
+    // directly instead of picking it.
+    if (!this._pickSkip) {
+      this._pickSkip = new Set();
+      for (const id of ['C105', 'C106']) {
+        const crystal = this.watchRoot.getObjectByName(id);
+        if (crystal) crystal.traverse(child => { if (child.isMesh) this._pickSkip.add(child); });
+      }
+    }
     const hits = this.raycaster.intersectObject(this.watchRoot, true)
-      .filter(hit => hit.object.isMesh && this._effectivelyVisible(hit.object));
+      .filter(hit => hit.object.isMesh && !this._pickSkip.has(hit.object) && this._effectivelyVisible(hit.object));
     for (const hit of hits) {
       const id = this._baseId(hit.object);
       if (id && this.parts.has(id) && this.parts.get(id).nodes.length) return id;
@@ -1047,17 +1102,27 @@ class ReversoViewer {
     return this.selection ? this.parts.get(this.selection) || null : null;
   }
 
+  /**
+   * Rebuild the highlight from the selected part's own meshes: only meshes that
+   * report the selected id — directly or through their nearest tagged ancestor
+   * — are drawn, so selecting a group never pulls in a child that carries its
+   * own separate id, and each source mesh contributes exactly one shell however
+   * many times the traversal reaches it.
+   */
   _rebuildSelectionOverlay() {
     this.highlightGroup.clear();
     this.selectionShells = [];
-    for (const node of this.selectionNodes) {
-      if (!node.isMesh) {
-        node.traverse(child => {
-          if (child.isMesh) this._addShell(child);
-        });
-        continue;
-      }
+    const seen = new Set();
+    const add = node => {
+      if (seen.has(node)) return;
+      seen.add(node);
       this._addShell(node);
+    };
+    for (const node of this.selectionNodes) {
+      if (node.isMesh) { add(node); continue; }
+      node.traverse(child => {
+        if (child.isMesh && this._baseId(child) === this.selection) add(child);
+      });
     }
     this.highlightGroup.visible = this.selectionShells.length > 0;
   }
@@ -1331,7 +1396,14 @@ class ReversoViewer {
       if (cradle) cradle.visible = false;
       if (this.movingNode) {
         this.movingNode.visible = true;
-        for (const node of this.movingNode.children) node.visible = node.name === 'M000';
+        // Under focus the moving case shows only the calibre module. That module
+        // is left exactly as it stands — its visibility IS the live state the
+        // M000 checkbox drives, and the same value is what the restore map ends
+        // up holding — while every other exterior group is hidden for the close
+        // view. Clobbering it here is what made the checkbox appear dead.
+        for (const node of this.movingNode.children) {
+          if (node.name !== 'M000') node.visible = false;
+        }
       }
       this.floor.visible = false;
     } else if (!on && this.focusVisibility) {
@@ -1407,8 +1479,12 @@ class ReversoViewer {
   setVisible(id, visible) {
     const node = this.watchRoot.getObjectByName(id);
     if (!node) return;
+    node.visible = !!visible;
+    // The calibre focus map is the restore record for the next unfocus, so the
+    // enabled control has to update it too: otherwise the live model keeps
+    // showing the part the visitor just switched off, and unfocusing brings
+    // back the pre-focus state as if the control had never been touched.
     if (this.focusVisibility) this.focusVisibility.set(node, !!visible);
-    else node.visible = !!visible;
     if (!this._userMovedCamera) this._frameCamera(this.state.view);
   }
 
@@ -1544,6 +1620,10 @@ class ReversoViewer {
       this.sourcesError = String(error.message || error);
       this._renderSources();
     }
+    // The source list and the card's locator row are filled in here, so the
+    // card's height — and the dock-relative offsets derived from it — are
+    // re-measured once the lazy fetch has actually landed.
+    this._syncOverlayBounds();
     return this.sourceIndex;
   }
 
@@ -1712,6 +1792,8 @@ class ReversoViewer {
     const radius = Math.max(sphere.radius, 1);
     const W = this.container.clientWidth || 1;
     const H = this.container.clientHeight || 1;
+    // A capture reframes with the UI overlays excluded, so the exported plate is
+    // composed for the whole stage rather than the strip they leave uncovered.
     const uncovered = this._uncoveredRect();
     const narrow = uncovered.width < 560;
     // Reserve the fixed header strip so the top of the watch never hides under
@@ -1749,6 +1831,10 @@ class ReversoViewer {
         radius * 0.02,
       );
       this._orthoHeight = height;
+      // OrbitControls leaves its own wheel zoom in camera.zoom; a named fit
+      // replaces the frustum, so a retained zoom would frame a model smaller
+      // than the requested view. Every named fit starts from zoom 1.
+      this.camera.zoom = 1;
       const aspect = W / H;
       this.camera.top = height / 2;
       this.camera.bottom = -height / 2;
@@ -1883,7 +1969,7 @@ class ReversoViewer {
     let right = rect.right;
     let bottom = rect.bottom;
 
-    const panel = $('panel');
+    const panel = this._captureIgnore?.has($('panel')) ? null : $('panel');
     if (panel && getComputedStyle(panel).display !== 'none') {
       const p = panel.getBoundingClientRect();
       if (p.width > 0 && rect.width > 900) right = Math.min(right, p.left);
@@ -1894,14 +1980,14 @@ class ReversoViewer {
     // model must frame below it. On wide layouts it is a corner card above the
     // dock, and shifting the model sideways for it would be worse than the small
     // overlap, so it is left alone there.
-    const card = $('selectionCard');
+    const card = this._captureIgnore?.has($('selectionCard')) ? null : $('selectionCard');
     if (card && !card.hidden && getComputedStyle(card).display !== 'none') {
       const c = card.getBoundingClientRect();
       if (c.height > 0 && c.width >= (rect.right - rect.left) * 0.7) {
         top = Math.max(top, c.bottom + 6);
       }
     }
-    const bar = $('controls');
+    const bar = this._captureIgnore?.has($('controls')) ? null : $('controls');
     if (bar && getComputedStyle(bar).display !== 'none') {
       const b = bar.getBoundingClientRect();
       if (b.height > 0) bottom = Math.min(bottom, Math.max(rect.top + 140, b.top - 6));
@@ -2207,6 +2293,10 @@ class ReversoViewer {
     // on every shape, and an explicit expand would otherwise persist into a
     // layout where it covers the model. Desktop ignores the flag entirely.
     this.setControlsOpen(false, { silent: true });
+    // The same resize can cross the 900px breakpoint with the Inspector open,
+    // so its inertness and focus state are re-derived before the new layout is
+    // measured by the refit below.
+    this._syncPanelInert();
     const w = this.container.clientWidth || window.innerWidth;
     const h = this.container.clientHeight || window.innerHeight;
     const aspect = w / Math.max(1, h);
@@ -2237,19 +2327,29 @@ class ReversoViewer {
     this.labelsLayer.style.top = `${un.top - rect.top}px`;
     this.labelsLayer.style.width = `${un.width}px`;
     this.labelsLayer.style.height = `${un.height}px`;
-    // The selection card sits above the live controls bar instead of at a fixed
-    // offset, so the two never overlap when the sheet grows.
+    this._placeSelectionCard(rect);
+  }
+
+  /**
+   * Place the selection card inside the live layout: above the dock on desktop,
+   * below the header on narrow screens. Each layout clears the edge the other
+   * one owns, so crossing the breakpoint or resizing the dock can never leave
+   * the card pinned to a stale offset.
+   */
+  _placeSelectionCard(rect = this.container.getBoundingClientRect()) {
+    const card = $('selectionCard');
+    if (!card) return;
+    const bar = $('controls');
     if (window.matchMedia('(min-width: 901px)').matches) {
-      const bar = $('controls');
-      const card = $('selectionCard');
-      if (bar && card && getComputedStyle(bar).display !== 'none') {
+      card.style.removeProperty('top');
+      if (bar && getComputedStyle(bar).display !== 'none') {
         const b = bar.getBoundingClientRect();
         card.style.bottom = `${Math.round(rect.bottom - b.top + 10)}px`;
       }
     } else {
-      const card = $('selectionCard');
+      card.style.removeProperty('bottom');
       const header = document.querySelector('header');
-      if (card && header) card.style.top = `${Math.round(header.getBoundingClientRect().bottom + 8)}px`;
+      if (header) card.style.top = `${Math.round(header.getBoundingClientRect().bottom + 8)}px`;
     }
   }
 
@@ -2323,55 +2423,156 @@ class ReversoViewer {
    * so the composition lives in one place.
    */
   async capturePNG() {
+    // Re-entrant captures (a second click while the first is still encoding)
+    // would both snapshot the same pre-capture value and race to restore it.
+    // One at a time; the next click re-renders and captures regardless.
+    if (this._isCapturing) return null;
+    // The page's UI overlays can squeeze the model's framing band: on a narrow
+    // viewport the full-screen Inspector and the wide selection card leave a
+    // short strip, and the PNG would then show a shrunken model rather than the
+    // composition on screen. For the capture those overlays are left out of the
+    // framing and crop, and the live layout is put back immediately afterwards.
+    // A desktop side slab is never excluded: the capture already crops beside
+    // it, so the existing desktop plate is unchanged. The camera is only touched
+    // when the automatic framing owns it; a manual camera is captured as set.
+    const containerWidth = this.container.getBoundingClientRect().width || 1;
+    const panel = $('panel');
+    const drawer = panel && getComputedStyle(panel).display !== 'none'
+      && panel.getBoundingClientRect().width >= containerWidth * 0.7
+      ? panel
+      : null;
+    const card = $('selectionCard');
+    const hanging = card && !card.hidden && card.getBoundingClientRect().width >= containerWidth * 0.7;
+    const overlays = [drawer, hanging ? card : null].filter(Boolean);
+    if (overlays.length) this._captureIgnore = new Set(overlays);
+    const restore = overlays.length && !this._userMovedCamera ? this._snapshotFraming() : null;
+    if (restore) this._frameCamera(this.state.view);
     const overlayWasVisible = this.highlightGroup.visible;
     this.highlightGroup.visible = false;
-    // Render once more so the captured canvas is current and caption-aligned.
-    this.render();
-    const source = this.renderer.domElement;
-    const scale = 2;
-    const sw = source.width;
-    const sh = source.height;
-    const pad = 16 * scale;
-    const lineH = 19 * scale;
-    const fontPx = 13 * scale;
+    // Setup is synchronous, so the guard only needs to cover the awaited part;
+    // setting it here means an impossible throw during setup cannot wedge it on.
+    this._isCapturing = true;
+    try {
+      // Render once more so the captured canvas is current and caption-aligned.
+      this.render();
+      const source = this.renderer.domElement;
+      const scale = 2;
+      const sw = source.width;
+      const sh = source.height;
+      const pad = 16 * scale;
+      const lineH = 19 * scale;
+      const fontPx = 13 * scale;
 
-    // The renderer canvas covers the whole stage, but the controls panel hides
-    // part of it and the model is centred in the uncovered region, so a full
-    // canvas would export a large blank strip. Crop to the union of the
-    // uncovered region and the model's projected bounds, with a small margin.
-    const crop = this._captureCrop(sw, sh, pad);
+      // The renderer canvas covers the whole stage, but the controls panel hides
+      // part of it and the model is centred in the uncovered region, so a full
+      // canvas would export a large blank strip. Crop to the union of the
+      // uncovered region and the model's projected bounds, with a small margin.
+      const crop = this._captureCrop(sw, sh, pad);
 
-    const measure = document.createElement('canvas').getContext('2d');
-    measure.font = `${fontPx}px system-ui, sans-serif`;
-    const lines = this._accuracyCaption()
-      .split('\n')
-      .flatMap(line => wrapText(measure, line, crop.w - pad * 2));
-    const captionH = Math.round(lines.length * lineH + pad * 1.2);
+      const measure = document.createElement('canvas').getContext('2d');
+      measure.font = `${fontPx}px system-ui, sans-serif`;
+      const lines = this._accuracyCaption()
+        .split('\n')
+        .flatMap(line => wrapText(measure, line, crop.w - pad * 2));
+      const captionH = Math.round(lines.length * lineH + pad * 1.2);
 
-    const out = document.createElement('canvas');
-    out.width = crop.w;
-    out.height = crop.h + captionH;
-    const ctx = out.getContext('2d');
-    // The renderer canvas is transparent over the CSS gallery field, so the
-    // plate paints its own warm backdrop first.
-    ctx.fillStyle = '#ece7df';
-    ctx.fillRect(0, 0, out.width, crop.h);
-    ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
+      const out = document.createElement('canvas');
+      out.width = crop.w;
+      out.height = crop.h + captionH;
+      const ctx = out.getContext('2d');
+      // The renderer canvas is transparent over the CSS gallery field, so the
+      // plate paints its own warm backdrop first.
+      ctx.fillStyle = '#ece7df';
+      ctx.fillRect(0, 0, out.width, crop.h);
+      ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
 
-    // The WebGL canvas alone has no labels, so copy the live callouts in.
-    this._drawLabelsOnCanvas(ctx, crop);
+      // The WebGL canvas alone has no labels, so copy the live callouts in.
+      this._drawLabelsOnCanvas(ctx, crop);
 
-    ctx.fillStyle = '#f7f4ef';
-    ctx.fillRect(0, crop.h, crop.w, captionH);
-    ctx.fillStyle = '#6d675c';
-    ctx.font = `${fontPx}px system-ui, sans-serif`;
-    ctx.textBaseline = 'top';
-    lines.forEach((line, i) => ctx.fillText(line, pad, crop.h + pad * 0.6 + i * lineH));
+      ctx.fillStyle = '#f7f4ef';
+      ctx.fillRect(0, crop.h, crop.w, captionH);
+      ctx.fillStyle = '#6d675c';
+      ctx.font = `${fontPx}px system-ui, sans-serif`;
+      ctx.textBaseline = 'top';
+      lines.forEach((line, i) => ctx.fillText(line, pad, crop.h + pad * 0.6 + i * lineH));
 
-    const blob = await new Promise(resolve => out.toBlob(resolve, 'image/png'));
-    this.highlightGroup.visible = overlayWasVisible;
-    this.render();
-    return blob;
+      // Restore the highlight the moment the rendered pixels are copied into
+      // the output canvas: the encode below is asynchronous, and a selection
+      // made while it runs must not be overwritten by a stale restore.
+      this.highlightGroup.visible = overlayWasVisible;
+      this.render();
+      return await new Promise(resolve => out.toBlob(resolve, 'image/png'));
+    } finally {
+      // Layout belongs to the page, not to the export, so it goes back even if
+      // rendering or encoding failed.
+      this._captureIgnore = null;
+      if (restore) this._restoreFraming(restore);
+      this._isCapturing = false;
+    }
+  }
+
+  /** Camera and panel layout to put back after a capture that had to reframe. */
+  _snapshotFraming() {
+    const camera = this.camera;
+    const view = camera.view;
+    return {
+      camera,
+      position: camera.position.clone(),
+      quaternion: camera.quaternion.clone(),
+      up: camera.up.clone(),
+      zoom: camera.zoom,
+      near: camera.near,
+      far: camera.far,
+      left: camera.left,
+      right: camera.right,
+      top: camera.top,
+      bottom: camera.bottom,
+      fov: camera.fov,
+      aspect: camera.aspect,
+      orthoHeight: this._orthoHeight,
+      view: view && view.enabled
+        ? { ...view }
+        : null,
+      target: this.controls.target.clone(),
+      panelOpen: $('panel').dataset.collapsed === 'false',
+    };
+  }
+
+  /** Put back exactly what _snapshotFraming() captured. */
+  _restoreFraming(snapshot) {
+    // The panel goes back first: its own refit is then overwritten by the
+    // captured camera below, so the restored frame is the captured one.
+    this.setPanelOpen(snapshot.panelOpen);
+    const camera = snapshot.camera;
+    camera.position.copy(snapshot.position);
+    camera.quaternion.copy(snapshot.quaternion);
+    camera.up.copy(snapshot.up);
+    camera.zoom = snapshot.zoom;
+    camera.near = snapshot.near;
+    camera.far = snapshot.far;
+    if ('fov' in camera) {
+      camera.fov = snapshot.fov;
+      camera.aspect = snapshot.aspect;
+    } else {
+      camera.left = snapshot.left;
+      camera.right = snapshot.right;
+      camera.top = snapshot.top;
+      camera.bottom = snapshot.bottom;
+    }
+    this._orthoHeight = snapshot.orthoHeight;
+    if (snapshot.view) {
+      camera.setViewOffset(
+        snapshot.view.fullWidth, snapshot.view.fullHeight,
+        snapshot.view.offsetX, snapshot.view.offsetY,
+        snapshot.view.width, snapshot.view.height,
+      );
+    } else {
+      camera.clearViewOffset();
+    }
+    camera.updateProjectionMatrix();
+    this.controls.target.copy(snapshot.target);
+    this.controls.update();
+    this._syncOverlayBounds();
   }
 
   /**
@@ -2498,6 +2699,8 @@ class ReversoViewer {
     try {
       status('rendering PNG…');
       const blob = await this.capturePNG();
+      // A capture already in flight keeps the status line it owns.
+      if (!blob) return;
       downloadBlob(blob, `q2718110-${this.state.view}.png`);
       status('');
     } catch (error) {
@@ -2561,7 +2764,7 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.moveTo(x + radius, y);
   ctx.arcTo(x + w, y, x + w, y + h, radius);
   ctx.arcTo(x + w, y + h, x, y + h, radius);
-  ctx.arcTo(x + w, y + h, x, y, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
   ctx.arcTo(x, y, x + w, y, radius);
   ctx.closePath();
 }

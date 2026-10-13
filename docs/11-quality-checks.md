@@ -73,6 +73,8 @@ All nine gallery PNGs and both geometry exports were regenerated. Real Chromium 
 
 The original-model assembly film was regenerated from the new viewer with a fixed camera and shared stage names: 1280 × 960, H.264/yuv420p, 24 fps, 336 frames, 14 seconds and no audio. Decoded opening, intermediate and assembled-dwell frames were inspected. Assembly lasts 12 seconds with 2 seconds seated; motion continues through the dwell. No owner image, third-party frame or external media asset was fetched, and temporary capture scripts/frames were removed.
 
+The review regression first failed on duplicated selection highlights, then passed after deduplicating source meshes. Live calibre visibility and named orthographic zoom reset are now covered by the real browser check. Manual browser smoke confirmed hand selection through clear crystals, mobile Inspector PNG capture with restored camera offsets, and responsive inert/focus transitions. Source-document links target their public GitHub copies. Labelled explosion plates were refreshed after correcting the caption-background corner path.
+
 ## Previous running-calibre verification
 
 The latest local app was inspected at 1440 × 1000 and 390 × 844. Both upright dials, seated rounded pusher, polished crown, reversal and whole-watch explosion were exercised. Crown changes from right to left through C100's half-turn while C000 remains fixed. Mobile calibre focus has no horizontal overflow and the application error panel remains empty.
